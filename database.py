@@ -1,0 +1,336 @@
+import hashlib
+import os
+import time
+
+# ============================
+# FILE PATHS
+# ============================
+
+DATA_FOLDER = "data"
+
+USERS_FILE = os.path.join(DATA_FOLDER, "users.txt")
+QUESTIONS_FILE = os.path.join(DATA_FOLDER, "questions.txt")
+RESULTS_FILE = os.path.join(DATA_FOLDER, "results.txt")
+ATTEMPTS_FILE = os.path.join(DATA_FOLDER, "attempts.txt")
+LOGIN_ATTEMPTS_FILE = os.path.join(DATA_FOLDER, "login_attempts.txt")
+
+
+# ============================
+# UTILITIES
+# ============================
+
+def hash_password(password: str) -> str:
+    return hashlib.sha256(password.encode()).hexdigest()
+
+
+def ensure_files_exist():
+
+    os.makedirs(DATA_FOLDER, exist_ok=True)
+
+    files = [
+        USERS_FILE,
+        QUESTIONS_FILE,
+        RESULTS_FILE,
+        ATTEMPTS_FILE,
+        LOGIN_ATTEMPTS_FILE
+    ]
+
+    for path in files:
+        if not os.path.exists(path):
+            open(path, "a").close()
+
+
+def read_file(path):
+
+    ensure_files_exist()
+
+    with open(path, "r") as f:
+        return [line.strip() for line in f.readlines()]
+
+
+def write_file(path, lines):
+
+    ensure_files_exist()
+
+    with open(path, "w") as f:
+        for line in lines:
+            f.write(line + "\n")
+
+
+# ============================
+# USER FUNCTIONS
+# ============================
+
+def get_user_by_roll(roll):
+
+    for line in read_file(USERS_FILE):
+
+        parts = line.split("|")
+
+        if len(parts) < 4:
+            continue
+
+        user_roll, email, password, role = parts[:4]
+
+        if user_roll == roll:
+
+            return {
+                "roll": user_roll,
+                "email": email,
+                "password": password,
+                "role": role
+            }
+
+    return None
+
+
+def get_all_users():
+
+    users = []
+
+    for line in read_file(USERS_FILE):
+
+        parts = line.split("|")
+
+        if len(parts) >= 4:
+            users.append(parts)
+
+    return users
+
+
+def create_empty_user(roll, role="student"):
+
+    with open(USERS_FILE, "a") as f:
+
+        timestamp = str(int(time.time()))
+
+        f.write(f"{roll}|||{role}|{timestamp}\n")
+
+
+def update_user(roll, email=None, password=None):
+
+    users = read_file(USERS_FILE)
+
+    updated = []
+
+    for line in users:
+
+        parts = line.split("|")
+
+        if len(parts) < 4:
+            continue
+
+        user_roll, user_email, user_pass, user_role = parts[:4]
+
+        if user_roll == roll:
+
+            if email:
+                user_email = email
+
+            if password:
+                user_pass = hash_password(password)
+
+        updated.append(f"{user_roll}|{user_email}|{user_pass}|{user_role}")
+
+    write_file(USERS_FILE, updated)
+
+
+def validate_user(roll, password):
+
+    user = get_user_by_roll(roll)
+
+    if not user:
+        return False
+
+    hashed = hash_password(password)
+
+    return user["password"] == hashed
+
+
+# ============================
+# LOGIN ATTEMPTS
+# ============================
+
+def record_failed_login(roll):
+
+    attempts = read_file(LOGIN_ATTEMPTS_FILE)
+
+    updated = []
+
+    found = False
+
+    for line in attempts:
+
+        r, count = line.split("|")
+
+        if r == roll:
+            count = str(int(count) + 1)
+            found = True
+
+        updated.append(f"{r}|{count}")
+
+    if not found:
+        updated.append(f"{roll}|1")
+
+    write_file(LOGIN_ATTEMPTS_FILE, updated)
+
+
+def get_failed_attempts(roll):
+
+    for line in read_file(LOGIN_ATTEMPTS_FILE):
+
+        r, count = line.split("|")
+
+        if r == roll:
+            return int(count)
+
+    return 0
+
+
+def reset_failed_attempts(roll):
+
+    attempts = read_file(LOGIN_ATTEMPTS_FILE)
+
+    updated = [line for line in attempts if not line.startswith(roll + "|")]
+
+    write_file(LOGIN_ATTEMPTS_FILE, updated)
+
+
+# ============================
+# QUESTION FUNCTIONS
+# ============================
+
+def get_all_questions():
+
+    return [line.split("|") for line in read_file(QUESTIONS_FILE)]
+
+
+def add_question(question_line):
+
+    with open(QUESTIONS_FILE, "a") as f:
+        f.write(question_line + "\n")
+
+
+def save_all_questions(question_list):
+
+    formatted = ["|".join(q) for q in question_list]
+
+    write_file(QUESTIONS_FILE, formatted)
+
+
+def get_all_subjects():
+
+    qs = get_all_questions()
+
+    subjects = {q[0] for q in qs}
+
+    return sorted(subjects)
+
+
+def count_questions():
+
+    return len(read_file(QUESTIONS_FILE))
+
+
+# ============================
+# RESULT FUNCTIONS
+# ============================
+
+def save_result(student_id, subject, score, total, percentage, grade):
+
+    timestamp = str(int(time.time()))
+
+    with open(RESULTS_FILE, "a") as f:
+
+        f.write(
+            f"{student_id}|{subject}|{score}|{total}|{percentage}|{grade}|{timestamp}\n"
+        )
+
+
+def get_all_results():
+
+    return [line.split("|") for line in read_file(RESULTS_FILE)]
+
+
+def get_result(student_id):
+
+    results = get_all_results()
+
+    filtered = [r for r in results if r[0] == student_id]
+
+    return filtered[-1] if filtered else None
+
+
+def count_results():
+
+    return len(read_file(RESULTS_FILE))
+
+
+# ============================
+# ATTEMPT FUNCTIONS
+# ============================
+
+def get_attempts(roll, subject):
+
+    for line in read_file(ATTEMPTS_FILE):
+
+        parts = line.split("|")
+
+        if len(parts) != 3:
+            continue
+
+        r, sub, attempts = parts
+
+        if r == roll and sub == subject:
+
+            return int(attempts)
+
+    return 0
+
+
+def increase_attempt(roll, subject):
+
+    lines = read_file(ATTEMPTS_FILE)
+
+    updated = []
+
+    found = False
+
+    for line in lines:
+
+        parts = line.split("|")
+
+        if len(parts) != 3:
+            continue
+
+        r, sub, att = parts
+
+        if r == roll and sub == subject:
+
+            att = str(int(att) + 1)
+
+            found = True
+
+        updated.append(f"{r}|{sub}|{att}")
+
+    if not found:
+
+        updated.append(f"{roll}|{subject}|1")
+
+    write_file(ATTEMPTS_FILE, updated)
+
+
+# ============================
+# SYSTEM STATS
+# ============================
+
+def total_users():
+    return len(read_file(USERS_FILE))
+
+
+def total_questions():
+    return len(read_file(QUESTIONS_FILE))
+
+
+def total_results():
+    return len(read_file(RESULTS_FILE))
