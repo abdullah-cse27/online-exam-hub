@@ -44,15 +44,15 @@ def read_file(path):
 
     ensure_files_exist()
 
-    with open(path, "r") as f:
-        return [line.strip() for line in f.readlines()]
+    with open(path, "r", encoding="utf-8") as f:
+        return [line.strip() for line in f.readlines() if line.strip()]
 
 
 def write_file(path, lines):
 
     ensure_files_exist()
 
-    with open(path, "w") as f:
+    with open(path, "w", encoding="utf-8") as f:
         for line in lines:
             f.write(line + "\n")
 
@@ -100,7 +100,7 @@ def get_all_users():
 
 def create_empty_user(roll, role="student"):
 
-    with open(USERS_FILE, "a") as f:
+    with open(USERS_FILE, "a", encoding="utf-8") as f:
 
         timestamp = str(int(time.time()))
 
@@ -148,72 +148,40 @@ def validate_user(roll, password):
 
 
 # ============================
-# LOGIN ATTEMPTS
-# ============================
-
-def record_failed_login(roll):
-
-    attempts = read_file(LOGIN_ATTEMPTS_FILE)
-
-    updated = []
-
-    found = False
-
-    for line in attempts:
-
-        r, count = line.split("|")
-
-        if r == roll:
-            count = str(int(count) + 1)
-            found = True
-
-        updated.append(f"{r}|{count}")
-
-    if not found:
-        updated.append(f"{roll}|1")
-
-    write_file(LOGIN_ATTEMPTS_FILE, updated)
-
-
-def get_failed_attempts(roll):
-
-    for line in read_file(LOGIN_ATTEMPTS_FILE):
-
-        r, count = line.split("|")
-
-        if r == roll:
-            return int(count)
-
-    return 0
-
-
-def reset_failed_attempts(roll):
-
-    attempts = read_file(LOGIN_ATTEMPTS_FILE)
-
-    updated = [line for line in attempts if not line.startswith(roll + "|")]
-
-    write_file(LOGIN_ATTEMPTS_FILE, updated)
-
-
-# ============================
 # QUESTION FUNCTIONS
 # ============================
 
 def get_all_questions():
 
-    return [line.split("|") for line in read_file(QUESTIONS_FILE)]
+    questions = []
+
+    for line in read_file(QUESTIONS_FILE):
+
+        parts = line.split("|")
+
+        # VALID QUESTION FORMAT CHECK
+        if len(parts) >= 10:
+            questions.append(parts)
+
+    return questions
 
 
 def add_question(question_line):
 
-    with open(QUESTIONS_FILE, "a") as f:
+    parts = question_line.split("|")
+
+    # SAFETY CHECK
+    if len(parts) < 10:
+        print("Invalid question format skipped")
+        return
+
+    with open(QUESTIONS_FILE, "a", encoding="utf-8") as f:
         f.write(question_line + "\n")
 
 
 def save_all_questions(question_list):
 
-    formatted = ["|".join(q) for q in question_list]
+    formatted = ["|".join(q) for q in question_list if len(q) >= 10]
 
     write_file(QUESTIONS_FILE, formatted)
 
@@ -222,14 +190,14 @@ def get_all_subjects():
 
     qs = get_all_questions()
 
-    subjects = {q[0] for q in qs}
+    subjects = {q[0] for q in qs if len(q) > 0}
 
     return sorted(subjects)
 
 
 def count_questions():
 
-    return len(read_file(QUESTIONS_FILE))
+    return len(get_all_questions())
 
 
 # ============================
@@ -240,7 +208,7 @@ def save_result(student_id, subject, score, total, percentage, grade):
 
     timestamp = str(int(time.time()))
 
-    with open(RESULTS_FILE, "a") as f:
+    with open(RESULTS_FILE, "a", encoding="utf-8") as f:
 
         f.write(
             f"{student_id}|{subject}|{score}|{total}|{percentage}|{grade}|{timestamp}\n"
@@ -249,7 +217,16 @@ def save_result(student_id, subject, score, total, percentage, grade):
 
 def get_all_results():
 
-    return [line.split("|") for line in read_file(RESULTS_FILE)]
+    results = []
+
+    for line in read_file(RESULTS_FILE):
+
+        parts = line.split("|")
+
+        if len(parts) >= 7:
+            results.append(parts)
+
+    return results
 
 
 def get_result(student_id):
@@ -263,7 +240,7 @@ def get_result(student_id):
 
 def count_results():
 
-    return len(read_file(RESULTS_FILE))
+    return len(get_all_results())
 
 
 # ============================
@@ -321,16 +298,65 @@ def increase_attempt(roll, subject):
 
 
 # ============================
+# LOGIN ATTEMPTS
+# ============================
+
+def record_failed_login(roll):
+
+    attempts = read_file(LOGIN_ATTEMPTS_FILE)
+
+    updated = []
+
+    found = False
+
+    for line in attempts:
+
+        r, count = line.split("|")
+
+        if r == roll:
+            count = str(int(count) + 1)
+            found = True
+
+        updated.append(f"{r}|{count}")
+
+    if not found:
+        updated.append(f"{roll}|1")
+
+    write_file(LOGIN_ATTEMPTS_FILE, updated)
+
+
+def get_failed_attempts(roll):
+
+    for line in read_file(LOGIN_ATTEMPTS_FILE):
+
+        r, count = line.split("|")
+
+        if r == roll:
+            return int(count)
+
+    return 0
+
+
+def reset_failed_attempts(roll):
+
+    attempts = read_file(LOGIN_ATTEMPTS_FILE)
+
+    updated = [line for line in attempts if not line.startswith(roll + "|")]
+
+    write_file(LOGIN_ATTEMPTS_FILE, updated)
+
+
+# ============================
 # SYSTEM STATS
 # ============================
 
 def total_users():
-    return len(read_file(USERS_FILE))
+    return len(get_all_users())
 
 
 def total_questions():
-    return len(read_file(QUESTIONS_FILE))
+    return count_questions()
 
 
 def total_results():
-    return len(read_file(RESULTS_FILE))
+    return count_results()

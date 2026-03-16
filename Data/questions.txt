@@ -1,52 +1,45 @@
-DSA|Array|Easy|mcq|What is the time complexity of accessing an array element?|O(n)|O(log n)|O(1)|O(n log n)|C
-DSA|Stack|Easy|mcq|Which operation adds an element to stack?|Pop|Push|Peek|Insert|B
-DSA|Queue|Easy|mcq|Queue follows which principle?|LIFO|FIFO|Random|Priority|B
-DSA|LinkedList|Medium|mcq|Which pointer points to next node in linked list?|Head|Tail|Next|Prev|C
-DSA|Tree|Medium|mcq|Binary tree max children per node?|1|2|3|4|B
-DSA|Graph|Hard|mcq|Which algorithm finds shortest path?|DFS|BFS|Dijkstra|Merge|C
-Math|Arithmetic|Easy|mcq|2 + 2 = ?|2|3|4|5|C
-Math|Algebra|Easy|mcq|Value of x in x + 3 = 7?|2|3|4|5|C
-Math|Geometry|Medium|mcq|Angles of triangle sum?|90|180|270|360|B
-Math|Arithmetic|Easy|mcq|5 * 6 = ?|20|25|30|35|C
-Math|Algebra|Medium|mcq|Solve 3x = 12|2|3|4|5|C
-Math|Statistics|Hard|mcq|Mean of 2,4,6?|3|4|5|6|B
-Python|Basics|Easy|mcq|Which keyword defines function?|func|define|def|function|C
-Python|Loops|Easy|mcq|Which loop repeats fixed times?|if|for|while|try|B
-Python|DataTypes|Easy|mcq|Which datatype stores True/False?|int|string|bool|float|C
-Python|List|Medium|mcq|List method to add element?|add|append|insert|push|B
-Python|OOP|Medium|mcq|Constructor method name?|init|__init__|start|make|B
-Python|Modules|Hard|mcq|Which keyword imports module?|load|include|import|using|C
-C|Basics|Easy|mcq|C language developed by?|Dennis Ritchie|James Gosling|Bjarne Stroustrup|Linus Torvalds|A
-C|Syntax|Easy|mcq|Which symbol ends statement?|.|;|:|,|B
-C|Loops|Easy|mcq|Which loop executes first then checks condition?|for|while|do while|switch|C
-C|Pointers|Medium|mcq|Symbol of pointer?|#|&|*|%|C
-C|Memory|Medium|mcq|Function for dynamic memory?|malloc|printf|scanf|open|A
-C|Functions|Hard|mcq|Return type of main?|void|int|string|float|B
-C++|OOP|Easy|mcq|C++ supports which paradigm?|Procedural|Object Oriented|Functional|None|B
-C++|Syntax|Easy|mcq|Header for input output?|iostream|stdio|stdlib|math|A
-C++|Classes|Medium|mcq|Keyword for class?|object|class|struct|define|B
-C++|Inheritance|Medium|mcq|Which symbol denotes scope?|->|::|==|!=|B
-C++|Polymorphism|Hard|mcq|Which keyword makes function virtual?|static|virtual|const|public|B
-SQL|Basics|Easy|mcq|Which keyword retrieves data?|GET|FETCH|SELECT|SHOW|C
-SQL|Insert|Easy|mcq|Which keyword adds data?|ADD|INSERT|PUT|CREATE|B
-SQL|Delete|Easy|mcq|Which keyword removes rows?|REMOVE|DELETE|DROP|CLEAR|B
-SQL|Join|Medium|mcq|Join returning matching rows?|LEFT|RIGHT|INNER|FULL|C
-SQL|Aggregation|Medium|mcq|Function to count rows?|SUM|COUNT|AVG|MAX|B
-SQL|Keys|Hard|mcq|Unique identifier in table?|Foreign Key|Primary Key|Index|Column|B
-Python|Loops|Easy|code|Print numbers from 1 to 5||1 2 3 4 5
-Python|Math|Easy|code|Print square of 5||25
-Python|Loops|Easy|code|Print numbers from 1 to 3||1 2 3
-Python|Math|Medium|code|Print sum of 2 and 3||5
-Python|Strings|Medium|code|Print Hello World||Hello World
-DSA|Array|Easy|code|Print first element of array [10,20,30]||10
-DSA|Math|Easy|code|Print sum of 1 and 2||3
-DSA|Loop|Medium|code|Print numbers from 1 to 4||1 2 3 4C|Operators|Easy|mcq|What will be the output of the following C code?
-#include <stdio.h>
-
-int main()
-{
-    int a = 5;
-    int b = a++;
-    printf("%d %d", a, b);
-    return 0;
-}|5 5|6 5|6 6|5 6|B
+C|Variables|Medium|mcq|What is the size of int in most C compilers?|2 bytes|4 bytes|8 bytes|Depends on compiler|B
+C|Operators|Medium|mcq|What is the output of printf("%d",5+2*3);?|21|11|16|7|B
+C|Loops|Medium|mcq|Which loop executes at least once?|for|while|do while|none|C
+C|Pointers|Medium|mcq|Which operator is used to get address of variable?|*|&|%|#|B
+C|Arrays|Medium|mcq|Index of first element in array?|1|0|-1|Depends|B
+C|Functions|Medium|mcq|Which keyword returns value from function?|stop|break|return|exit|C
+C|Syntax|Medium|mcq|Which header is required for printf?|math.h|stdio.h|string.h|stdlib.h|B
+C|Pointers|Medium|mcq|Pointer stores?|value|address|operator|loop|B
+C|Operators|Medium|mcq|Which is logical AND?|&&|&|||^|A
+C|Control|Medium|mcq|Which statement selects multiple options?|for|if|switch|goto|C
+C|Loops|Medium|code|Write a program to print sum of first N numbers.|5|15
+C|Loops|Medium|code|Write a program to print factorial of N.|5|120
+C|Conditions|Medium|code|Write program to check even or odd.|4|Even
+C|Math|Medium|code|Write program to find square of number.|6|36
+C|Loops|Medium|code|Write program to print numbers from 1 to N.|5|1 2 3 4 5
+Python|Basics|Medium|mcq|Which keyword defines function in Python?|func|define|def|function|C
+Python|Data Types|Medium|mcq|Which type stores decimal numbers?|int|float|string|bool|B
+Python|Lists|Medium|mcq|Which bracket is used for list?|()|{}|[]|<>|C
+Python|Loops|Medium|mcq|Which loop iterates sequence?|for|while|loop|iterate|A
+Python|Operators|Medium|mcq|Which operator is exponent?|*|**|^|//|B
+Python|Strings|Medium|mcq|Which function returns string length?|size()|len()|length()|count()|B
+Python|Input|Medium|mcq|Which function takes input?|scan()|read()|input()|get()|C
+Python|Lists|Medium|mcq|Append adds element to?|start|middle|end|none|C
+Python|Conditions|Medium|mcq|Which keyword checks condition?|if|loop|test|cond|A
+Python|Syntax|Medium|mcq|Python uses indentation for?|loops|conditions|blocks|all|D
+Python|Loops|Medium|code|Print sum of first N numbers.|5|15
+Python|Math|Medium|code|Print square of number.|7|49
+Python|Conditions|Medium|code|Check if number is positive or negative.|5|Positive
+Python|Loops|Medium|code|Print numbers from 1 to N.|5|1 2 3 4 5
+Python|Math|Medium|code|Print cube of number.|3|27
+DSA|Complexity|Medium|mcq|Time complexity of binary search?|O(n)|O(log n)|O(n log n)|O(1)|B
+DSA|Stack|Medium|mcq|Stack follows which principle?|FIFO|LIFO|Random|Priority|B
+DSA|Queue|Medium|mcq|Queue follows?|FIFO|LIFO|Stack|Tree|A
+DSA|Tree|Medium|mcq|Root node is?|first node|leaf node|last node|null|A
+DSA|Graph|Medium|mcq|Graph consists of?|nodes|edges|both|none|C
+DSA|Stack|Medium|mcq|Which operation removes element?|push|pop|peek|insert|B
+DSA|Queue|Medium|mcq|Insert in queue?|enqueue|push|add|put|A
+DSA|Tree|Medium|mcq|Leaf node has?|0 child|1 child|2 child|3 child|A
+DSA|Array|Medium|mcq|Array elements stored?|random|contiguous|linked|stack|B
+DSA|Search|Medium|mcq|Linear search complexity?|O(n)|O(log n)|O(1)|O(n²)|A
+DSA|Arrays|Medium|code|Find maximum number in array.|5 2 9 1|9
+DSA|Arrays|Medium|code|Find minimum number in array.|5 2 9 1|1
+DSA|Math|Medium|code|Check if number is prime.|7|Prime
+DSA|Math|Medium|code|Check if number is palindrome.|121|Palindrome
+DSA|Math|Medium|code|Find sum of digits.|123|6

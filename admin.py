@@ -67,11 +67,13 @@ def admin_panel():
 
     elif choice == "📚 Subject Analytics":
         subject_analytics()
-    elif choice == "Live Monitoring":
+
+    elif choice == "=> Live Monitoring":
 
         from admin_monitor import monitor_exam
 
         monitor_exam()
+
 
 # ======================================================
 # DASHBOARD
@@ -95,21 +97,16 @@ def dashboard():
 
     st.divider()
 
-    # Difficulty Distribution
     diff = {"Easy":0,"Medium":0,"Hard":0}
 
     for q in questions:
-        if len(q) > 2:
+        if len(q) > 2 and q[2] in diff:
             diff[q[2]] += 1
 
     st.subheader("📈 Question Difficulty Distribution")
 
     st.bar_chart(diff)
 
-
-# ======================================================
-# ADD QUESTION
-# ======================================================
 
 # ======================================================
 # ADD QUESTION
@@ -134,9 +131,6 @@ def add_question_ui():
 
     question = st.text_area("Enter Question")
 
-    # =========================
-    # MCQ QUESTION
-    # =========================
     if qtype == "MCQ":
 
         col1, col2 = st.columns(2)
@@ -164,9 +158,6 @@ def add_question_ui():
             else:
                 st.error("All fields required!")
 
-    # =========================
-    # CODING QUESTION
-    # =========================
     else:
 
         st.subheader("💻 Coding Question")
@@ -218,41 +209,40 @@ def view_questions_ui():
         if subject_filter and subject_filter.lower() not in q[0].lower():
             continue
 
-        # MCQ Question
         if q[3] == "mcq" and len(q) >= 10:
 
             st.markdown(f"""
-            ### {i+1}. {q[4]}
+### {i+1}. {q[4]}
 
-            **Subject:** {q[0]}  
-            **Topic:** {q[1]}  
-            **Difficulty:** {q[2]}
+**Subject:** {q[0]}  
+**Topic:** {q[1]}  
+**Difficulty:** {q[2]}
 
-            A) {q[5]}  
-            B) {q[6]}  
-            C) {q[7]}  
-            D) {q[8]}
+A) {q[5]}  
+B) {q[6]}  
+C) {q[7]}  
+D) {q[8]}
 
-            **Correct:** {q[9]}
-            ---
-            """)
+**Correct:** {q[9]}
+---
+""")
 
-        # Coding Question
         elif q[3] == "code" and len(q) >= 7:
 
             st.markdown(f"""
-            ### {i+1}. {q[4]}
+### {i+1}. {q[4]}
 
-            **Subject:** {q[0]}  
-            **Topic:** {q[1]}  
-            **Difficulty:** {q[2]}
+**Subject:** {q[0]}  
+**Topic:** {q[1]}  
+**Difficulty:** {q[2]}
 
-            💻 **Coding Question**
+💻 **Coding Question**
 
-            **Expected Output:** {q[6]}
+**Expected Output:** {q[6]}
 
-            ---
-            """)
+---
+""")
+
 
 # ======================================================
 # EDIT QUESTION
@@ -275,35 +265,58 @@ def edit_question_ui():
     subject = st.text_input("Subject", q[0])
     topic = st.text_input("Topic", q[1])
 
+    diff_list = ["Easy","Medium","Hard"]
     difficulty = st.selectbox(
         "Difficulty",
-        ["Easy","Medium","Hard"],
-        index=["Easy","Medium","Hard"].index(q[2])
+        diff_list,
+        index=diff_list.index(q[2]) if q[2] in diff_list else 0
     )
 
-    question = st.text_input("Question", q[3])
+    qtype = q[3]
 
-    A = st.text_input("Option A", q[4])
-    B = st.text_input("Option B", q[5])
-    C = st.text_input("Option C", q[6])
-    D = st.text_input("Option D", q[7])
+    question = st.text_input("Question", q[4])
 
-    correct = st.selectbox(
-        "Correct",
-        ["A","B","C","D"],
-        index=["A","B","C","D"].index(q[8])
-    )
+    if qtype == "mcq":
 
-    if st.button("Save Changes"):
+        A = st.text_input("Option A", q[5])
+        B = st.text_input("Option B", q[6])
+        C = st.text_input("Option C", q[7])
+        D = st.text_input("Option D", q[8])
 
-        qs[index] = [
-            subject,topic,difficulty,
-            question,A,B,C,D,correct
-        ]
+        correct_list = ["A","B","C","D"]
 
-        save_all_questions(qs)
+        correct = st.selectbox(
+            "Correct",
+            correct_list,
+            index=correct_list.index(q[9]) if q[9] in correct_list else 0
+        )
 
-        st.success("Question Updated!")
+        if st.button("Save Changes"):
+
+            qs[index] = [
+                subject,topic,difficulty,"mcq",
+                question,A,B,C,D,correct
+            ]
+
+            save_all_questions(qs)
+
+            st.success("Question Updated!")
+
+    else:
+
+        sample_input = st.text_input("Sample Input", q[5])
+        expected_output = st.text_input("Expected Output", q[6])
+
+        if st.button("Save Changes"):
+
+            qs[index] = [
+                subject,topic,difficulty,"code",
+                question,sample_input,expected_output
+            ]
+
+            save_all_questions(qs)
+
+            st.success("Coding Question Updated!")
 
 
 # ======================================================
@@ -363,10 +376,10 @@ def view_students_ui():
     for roll,email,passwd,role in students:
 
         st.markdown(f"""
-        **Roll:** {roll}  
-        **Email:** {email if email else "(Not Set)"}  
-        ---
-        """)
+**Roll:** {roll}  
+**Email:** {email if email else "(Not Set)"}  
+---
+""")
 
 
 # ======================================================
@@ -469,6 +482,7 @@ def edit_student_ui():
 
         st.success("Student Updated Successfully")
 
+
 # ======================================================
 # DELETE STUDENT
 # ======================================================
@@ -493,8 +507,10 @@ def delete_student_ui():
 
         remaining = [u for u in users if u[0] != selected]
 
-        from database import save_all_users
+        from database import write_file, USERS_FILE
 
-        save_all_users(remaining)
+        lines = ["|".join(u) for u in remaining]
+
+        write_file(USERS_FILE, lines)
 
         st.success("Student Deleted Successfully")
