@@ -1,5 +1,5 @@
 # ============================================================
-# FILE: exam.py (FINAL STABLE VERSION)
+# FILE: exam.py (UPDATED FINAL VERSION)
 # ============================================================
 
 import streamlit as st
@@ -16,14 +16,12 @@ from monitoring.proctoring import analyze_frame
 
 st.set_page_config(layout="wide")
 
-
 # ============================================================
 # GLOBAL STYLE
 # ============================================================
 
 st.markdown("""
 <style>
-
 [data-testid="stSidebar"] {display:none;}
 
 .timer{
@@ -31,7 +29,6 @@ font-size:30px;
 color:red;
 font-weight:bold;
 }
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -46,7 +43,8 @@ def init_state():
         "step":"fullscreen",
         "index":0,
         "score":0,
-        "questions":[]
+        "questions":[],
+        "answers":{}
     }
 
     for k,v in defaults.items():
@@ -57,7 +55,6 @@ def init_state():
 # ============================================================
 # SECURITY SCRIPT
 # ============================================================
-
 def security_script():
 
     components.html("""
@@ -65,79 +62,86 @@ def security_script():
 
     if(!window.examSecurityLoaded){
 
-        window.examSecurityLoaded=true;
+        window.examSecurityLoaded = true;
 
-        let countdown=null;
+        const parentWindow = window.parent;
+        const parentDoc = parentWindow.document;
 
-        function startCountdown(){
+        let overlay = null;
+        let countdownTimer = null;
 
-            let t=15;
+        function showWarning(){
 
-            let box=document.createElement("div");
+            if(overlay) return;
 
-            box.style.position="fixed";
-            box.style.top="20px";
-            box.style.right="20px";
-            box.style.background="red";
-            box.style.color="white";
-            box.style.padding="15px";
-            box.style.fontSize="20px";
-            box.style.zIndex="9999";
+            let t = 15;
 
-            document.body.appendChild(box);
+            overlay = parentDoc.createElement("div");
 
-            countdown=setInterval(function(){
+            overlay.style.position="fixed";
+            overlay.style.top="0";
+            overlay.style.left="0";
+            overlay.style.width="100%";
+            overlay.style.height="100%";
+            overlay.style.background="rgba(0,0,0,0.9)";
+            overlay.style.display="flex";
+            overlay.style.flexDirection="column";
+            overlay.style.alignItems="center";
+            overlay.style.justifyContent="center";
+            overlay.style.color="white";
+            overlay.style.fontSize="50px";
+            overlay.style.zIndex="999999";
 
-                box.innerHTML="Return to exam in "+t+" sec";
+            const text = parentDoc.createElement("div");
+
+            const btn = parentDoc.createElement("button");
+            btn.innerText="Cancel";
+            btn.style.marginTop="20px";
+            btn.style.padding="15px";
+            btn.style.fontSize="20px";
+
+            btn.onclick=function(){
+                clearInterval(countdownTimer);
+                overlay.remove();
+                overlay=null;
+            };
+
+            overlay.appendChild(text);
+            overlay.appendChild(btn);
+
+            parentDoc.body.appendChild(overlay);
+
+            countdownTimer = setInterval(function(){
+
+                text.innerHTML="Tab switch detected! Return in "+t+" sec";
 
                 t--;
 
                 if(t<0){
 
-                    clearInterval(countdown);
+                    clearInterval(countdownTimer);
 
                     alert("Exam terminated due to tab switching");
 
-                    location.reload();
-
+                    parentWindow.location.reload();
                 }
 
             },1000);
-
         }
 
-        document.addEventListener("visibilitychange",function(){
+        // REAL TAB SWITCH DETECTION
+        parentDoc.addEventListener("visibilitychange", function(){
 
-            if(document.hidden){
-                startCountdown();
-            }
-            else{
-                clearInterval(countdown);
+            if(parentDoc.hidden){
+                showWarning();
             }
 
         });
-
-        document.addEventListener("fullscreenchange",function(){
-
-            if(!document.fullscreenElement){
-
-                alert("Fullscreen exited. Exam terminated.");
-
-                location.reload();
-
-            }
-
-        });
-
-        document.addEventListener("copy", e=>e.preventDefault());
-        document.addEventListener("paste", e=>e.preventDefault());
-        document.addEventListener("contextmenu", e=>e.preventDefault());
 
     }
 
     </script>
     """, height=0)
-
 
 # ============================================================
 # FULLSCREEN STEP
@@ -152,31 +156,8 @@ def fullscreen_step():
         <div style="text-align:center;margin-top:100px;">
 
         <button onclick="openFullscreen()" 
-        style="
-        padding:20px;
-        font-size:20px;
-        background:green;
-        color:white;
-        border:none;
-        border-radius:10px;
-        cursor:pointer;
-        ">
+        style="padding:20px;font-size:20px;background:green;color:white;border:none;border-radius:10px;">
         Enter Fullscreen
-        </button>
-
-        <br><br>
-
-        <button onclick="continueExam()" 
-        style="
-        padding:15px;
-        font-size:18px;
-        background:#444;
-        color:white;
-        border:none;
-        border-radius:8px;
-        cursor:pointer;
-        ">
-        Continue
         </button>
 
         </div>
@@ -185,27 +166,17 @@ def fullscreen_step():
 
         function openFullscreen(){
 
-            const elem = parent.document.documentElement;
+            const elem=parent.document.documentElement;
 
             if(elem.requestFullscreen){
                 elem.requestFullscreen();
             }
-            else if(elem.webkitRequestFullscreen){
-                elem.webkitRequestFullscreen();
-            }
-            else if(elem.msRequestFullscreen){
-                elem.msRequestFullscreen();
-            }
 
-        }
-
-        function continueExam(){
-            window.parent.location.reload();
         }
 
         </script>
         """,
-        height=300
+        height=200
     )
 
     if st.button("Proceed to Camera"):
@@ -231,7 +202,6 @@ def camera_step():
         result=analyze_frame(img)
 
         if result["warning"]:
-
             st.error(result["warning"])
 
         else:
@@ -239,7 +209,6 @@ def camera_step():
             st.success("Face verified successfully")
 
             if st.button("Proceed to Exam"):
-
                 st.session_state.step="exam"
                 st.rerun()
 
@@ -264,52 +233,86 @@ def prepare_questions(subject):
 # ============================================================
 # TIMER
 # ============================================================
-
-def js_timer(limit):
+def js_timer(limit,qid):
 
     components.html(f"""
     <div id="timer"
     style="
-    font-size:30px;
+    font-size:40px;
     color:red;
     font-weight:bold;
     position:fixed;
     top:10px;
     left:50%;
     transform:translateX(-50%);
-    z-index:9999;
-    ">
+    z-index:9999;">
     </div>
 
     <script>
 
-    if(!window.examTimer){{
+    // Reset timer for new question
+    if(window.currentQuestion !== "{qid}"){{
 
-        let t={limit};
+        window.currentQuestion = "{qid}";
 
-        window.examTimer=setInterval(function(){{
+        if(window.examTimer){{
+            clearInterval(window.examTimer);
+        }}
 
-            document.getElementById("timer").innerHTML="Time Left: "+t+" sec";
+        let t = {limit};
+
+        const timerBox = document.getElementById("timer");
+
+        function updateTimer(){{
+
+            timerBox.innerHTML = "Time Left: " + t + " sec";
 
             t--;
 
-            if(t<0){{
+            if(t < 0){{
 
                 clearInterval(window.examTimer);
 
-                alert("Time Up");
+                const popup = document.createElement("div");
 
-                location.reload();
+                popup.style.position="fixed";
+                popup.style.bottom="20px";
+                popup.style.right="20px";
+                popup.style.background="orange";
+                popup.style.padding="15px";
+                popup.style.fontSize="18px";
+                popup.style.borderRadius="10px";
+                popup.style.zIndex="999999";
+
+                popup.innerHTML="Time up for this question";
+
+                document.body.appendChild(popup);
+
+                setTimeout(()=>{{
+
+                    popup.remove();
+
+                    const buttons = window.parent.document.querySelectorAll("button");
+
+                    buttons.forEach(btn=>{{
+                        if(btn.innerText==="Skip"){{
+                            btn.click();
+                        }}
+                    }});
+
+                }},1500);
 
             }}
+        }}
 
-        }},1000);
+        updateTimer();
+
+        window.examTimer = setInterval(updateTimer,1000);
 
     }}
 
     </script>
-    """, height=80)
-
+    """, height=90)
 
 # ============================================================
 # EXAM STEP
@@ -334,15 +337,14 @@ def exam_step(student_id,subject):
     st.progress((i+1)/len(qs))
 
     limit=20 if q[3]=="mcq" else 180
-    js_timer(limit)
+    js_timer(limit,i)
 
     st.markdown(f"### Question {i+1}")
     st.write(q[4])
 
-
-# ------------------------------------------------------------
+# ============================================================
 # MCQ
-# ------------------------------------------------------------
+# ============================================================
 
     if q[3]=="mcq":
 
@@ -353,24 +355,39 @@ def exam_step(student_id,subject):
             "D":q[8]
         }
 
-        ans=st.radio(
+        selected=st.radio(
             "Choose Answer",
             [f"{k}) {v}" for k,v in options.items()],
             key=f"mcq{i}"
         )
 
-        if st.button("Submit"):
+        col1,col2,col3=st.columns(3)
 
-            if ans.split(")")[0]==q[9]:
+        if col1.button("Previous"):
+
+            if i>0:
+                st.session_state.index-=1
+                st.rerun()
+
+        if col2.button("Skip"):
+
+            st.session_state.index+=1
+            st.rerun()
+
+        if col3.button("Submit"):
+
+            st.session_state.answers[i]=selected.split(")")[0]
+
+            if selected.split(")")[0]==q[9]:
                 st.session_state.score+=1
 
             st.session_state.index+=1
             st.rerun()
 
 
-# ------------------------------------------------------------
+# ============================================================
 # CODING
-# ------------------------------------------------------------
+# ============================================================
 
     elif q[3]=="code":
 
@@ -383,7 +400,20 @@ def exam_step(student_id,subject):
             output=run_python_code(code)
             st.code(output)
 
-        if st.button("Submit Code"):
+        col1,col2,col3=st.columns(3)
+
+        if col1.button("Previous"):
+
+            if i>0:
+                st.session_state.index-=1
+                st.rerun()
+
+        if col2.button("Skip"):
+
+            st.session_state.index+=1
+            st.rerun()
+
+        if col3.button("Submit Code"):
 
             result=run_python_code(code)
 

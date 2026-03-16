@@ -40,4 +40,13 @@ Python|Math|Medium|code|Print sum of 2 and 3||5
 Python|Strings|Medium|code|Print Hello World||Hello World
 DSA|Array|Easy|code|Print first element of array [10,20,30]||10
 DSA|Math|Easy|code|Print sum of 1 and 2||3
-DSA|Loop|Medium|code|Print numbers from 1 to 4||1 2 3 4
+DSA|Loop|Medium|code|Print numbers from 1 to 4||1 2 3 4C|Operators|Easy|mcq|What will be the output of the following C code?
+#include <stdio.h>
+
+int main()
+{
+    int a = 5;
+    int b = a++;
+    printf("%d %d", a, b);
+    return 0;
+}|5 5|6 5|6 6|5 6|B
