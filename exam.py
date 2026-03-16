@@ -147,37 +147,68 @@ def fullscreen_step():
 
     st.title("Enter Fullscreen Mode")
 
-    st.markdown("""
-    <script>
+    components.html(
+        """
+        <div style="text-align:center;margin-top:100px;">
 
-    function openFullscreen(){
+        <button onclick="openFullscreen()" 
+        style="
+        padding:20px;
+        font-size:20px;
+        background:green;
+        color:white;
+        border:none;
+        border-radius:10px;
+        cursor:pointer;
+        ">
+        Enter Fullscreen
+        </button>
 
-        const elem=document.documentElement;
+        <br><br>
 
-        if(elem.requestFullscreen){
-            elem.requestFullscreen();
+        <button onclick="continueExam()" 
+        style="
+        padding:15px;
+        font-size:18px;
+        background:#444;
+        color:white;
+        border:none;
+        border-radius:8px;
+        cursor:pointer;
+        ">
+        Continue
+        </button>
+
+        </div>
+
+        <script>
+
+        function openFullscreen(){
+
+            const elem = parent.document.documentElement;
+
+            if(elem.requestFullscreen){
+                elem.requestFullscreen();
+            }
+            else if(elem.webkitRequestFullscreen){
+                elem.webkitRequestFullscreen();
+            }
+            else if(elem.msRequestFullscreen){
+                elem.msRequestFullscreen();
+            }
+
         }
-        else if(elem.webkitRequestFullscreen){
-            elem.webkitRequestFullscreen();
-        }
-        else if(elem.msRequestFullscreen){
-            elem.msRequestFullscreen();
+
+        function continueExam(){
+            window.parent.location.reload();
         }
 
-    }
+        </script>
+        """,
+        height=300
+    )
 
-    </script>
-    """, unsafe_allow_html=True)
-
-    if st.button("Enter Fullscreen"):
-
-        st.markdown(
-        "<script>openFullscreen()</script>",
-        unsafe_allow_html=True
-        )
-
-    if st.button("Continue to Camera Verification"):
-
+    if st.button("Proceed to Camera"):
         st.session_state.step="camera"
         st.rerun()
 
