@@ -34,31 +34,12 @@ def student_panel():
 
     student_id = st.session_state.userid
 
-    # Load all results once
     all_results = get_all_results()
-
-
-    # ===================================================
-    # PERFORMANCE DASHBOARD
-    # ===================================================
 
     summary = get_student_summary(all_results, student_id)
 
-    if summary:
-
-        st.subheader("📊 Performance Dashboard")
-
-        col1, col2, col3 = st.columns(3)
-
-        col1.metric("Total Exams", summary.get("total_exams", 0))
-        col2.metric("Average Score", f"{summary.get('average_score',0)}%")
-        col3.metric("Subjects Covered", len(summary.get("subjects", [])))
-
-        st.divider()
-
-
     # ===================================================
-    # PREVENT EXIT DURING EXAM
+    # EXAM LOCK
     # ===================================================
 
     if st.session_state.get("exam_active", False):
@@ -74,43 +55,156 @@ def student_panel():
 
 
     # ===================================================
-    # MENU
+    # SIDEBAR
     # ===================================================
 
     menu = [
+        "Dashboard",
+        "Latest Quiz",
+        "All Quizzes",
+        "Recommended Quizzes",
         "Start Exam",
+        "Coding Practice",
+        "Leaderboard",
         "View Result",
         "Exam History",
         "Performance Analytics",
         "Change Password"
     ]
 
-    choice = st.selectbox("Select Option", menu)
+    choice = st.sidebar.selectbox("Menu", menu)
+
+
+    # ===================================================
+    # DASHBOARD
+    # ===================================================
+
+    if choice == "Dashboard":
+
+        st.subheader("📊 Student Dashboard")
+
+        if summary:
+
+            col1, col2, col3 = st.columns(3)
+
+            col1.metric("Total Exams", summary.get("total_exams", 0))
+            col2.metric("Average Score", f"{summary.get('average_score',0)}%")
+            col3.metric("Subjects Covered", len(summary.get("subjects", [])))
+
+        st.divider()
+
+        st.info("Use sidebar to start exams or practice coding.")
+
+
+    # ===================================================
+    # LATEST QUIZ
+    # ===================================================
+
+    elif choice == "Latest Quiz":
+
+        st.subheader("🆕 Latest Quiz")
+
+        subjects = get_all_subjects()
+
+        if not subjects:
+            st.warning("No quizzes available")
+            return
+
+        latest = subjects[-1]
+
+        st.success(f"Latest Quiz Available: **{latest}**")
+
+        if st.button("Start Latest Quiz"):
+
+            st.session_state.exam_subject = latest
+            st.session_state.show_rules = True
+            st.rerun()
+
+
+    # ===================================================
+    # ALL QUIZZES
+    # ===================================================
+
+    elif choice == "All Quizzes":
+
+        st.subheader("📚 Available Quizzes")
+
+        subjects = get_all_subjects()
+
+        if not subjects:
+            st.warning("No quizzes available.")
+            return
+
+        for sub in subjects:
+
+            col1, col2 = st.columns([3,1])
+
+            col1.write(sub)
+
+            if col2.button("Start", key=sub):
+
+                st.session_state.exam_subject = sub
+                st.session_state.show_rules = True
+                st.rerun()
+
+
+    # ===================================================
+    # RECOMMENDED QUIZZES
+    # ===================================================
+
+    elif choice == "Recommended Quizzes":
+
+        st.subheader("💡 Recommended Quizzes")
+
+        weak = detect_weak_subjects(all_results, student_id)
+
+        if not weak:
+
+            st.success("No weak subjects detected!")
+
+            subjects = get_all_subjects()
+
+            for s in subjects[:3]:
+
+                if st.button(f"Practice {s}"):
+
+                    st.session_state.exam_subject = s
+                    st.session_state.show_rules = True
+                    st.rerun()
+
+        else:
+
+            st.warning("You should practice these subjects:")
+
+            for w in weak:
+
+                if st.button(f"Practice {w}"):
+
+                    st.session_state.exam_subject = w
+                    st.session_state.show_rules = True
+                    st.rerun()
 
 
     # ===================================================
     # START EXAM
     # ===================================================
 
-    if choice == "Start Exam":
+    elif choice == "Start Exam":
 
         subjects = get_all_subjects()
-
-        if not subjects:
-            st.warning("No subjects found!")
-            return
 
         subject = st.selectbox("Select Subject", subjects)
 
         attempts = get_attempts(student_id, subject)
 
-        st.info(f"Attempts used: {attempts} / 3")
+        st.info(f"Attempts used: {attempts}/3")
 
         if attempts >= 3:
-            st.error("❌ Maximum attempts reached.")
+
+            st.error("Maximum attempts reached")
             return
 
-        if st.button("Continue ➜", use_container_width=True):
+        if st.button("Continue ➜"):
 
             st.session_state.exam_subject = subject
             st.session_state.show_rules = True
@@ -120,7 +214,49 @@ def student_panel():
         if st.session_state.get("show_rules", False):
 
             show_exam_rules(student_id, subject)
-            return
+
+
+    # ===================================================
+    # CODING PRACTICE
+    # ===================================================
+
+    elif choice == "Coding Practice":
+
+        st.subheader("💻 Coding Practice")
+
+        subjects = get_all_subjects()
+
+        subject = st.selectbox("Choose Subject", subjects)
+
+        st.info("Practice coding questions without timer.")
+
+        if st.button("Start Practice"):
+
+            st.session_state.exam_subject = subject
+            st.session_state.practice_mode = True
+            st.session_state.exam_active = True
+            st.rerun()
+
+
+    # ===================================================
+    # LEADERBOARD
+    # ===================================================
+
+    elif choice == "Leaderboard":
+
+        st.subheader("🏆 Leaderboard")
+
+        scores = []
+
+        for r in all_results:
+
+            scores.append((r[0], float(r[4])))
+
+        scores.sort(key=lambda x: x[1], reverse=True)
+
+        for i, s in enumerate(scores[:10]):
+
+            st.write(f"{i+1}. {s[0]} — {s[1]}%")
 
 
     # ===================================================
@@ -155,7 +291,7 @@ def student_panel():
         history = [r for r in all_results if r[0] == student_id]
 
         if not history:
-            st.warning("No exam history found.")
+            st.warning("No history found")
             return
 
         st.subheader("📜 Exam History")
@@ -173,13 +309,11 @@ def student_panel():
 
     elif choice == "Performance Analytics":
 
-        summary = get_student_summary(all_results, student_id)
-
         if not summary:
-            st.warning("No analytics available yet.")
+            st.warning("No analytics available yet")
             return
 
-        st.subheader("📈 Detailed Analytics")
+        st.subheader("📈 Performance Analytics")
 
         st.write("Average Score:", summary.get("average_score",0), "%")
 
@@ -211,7 +345,7 @@ def student_panel():
 
 
 # ===================================================
-# SHOW RULES
+# EXAM RULES
 # ===================================================
 
 def show_exam_rules(student_id, subject):
@@ -219,20 +353,10 @@ def show_exam_rules(student_id, subject):
     st.subheader("📘 Exam Rules")
 
     st.markdown("""
-### ⚠ Important Instructions
-
 ✔ Each question has **20 second timer**  
 ✔ Questions appear in **random order**  
 ✔ **Tab switching detected**  
-✔ **No going back**  
 ✔ **Max 3 attempts per subject**
-
-Passing Criteria
-
-A = 90%+  
-B = 75%+  
-C = 60%+  
-FAIL otherwise
 """)
 
     if st.button("I Agree & Start Exam 🚀"):
@@ -246,7 +370,7 @@ FAIL otherwise
 
 
 # ===================================================
-# CHANGE PASSWORD FLOW
+# CHANGE PASSWORD
 # ===================================================
 
 def change_password_flow(student_id):
@@ -255,15 +379,7 @@ def change_password_flow(student_id):
 
     user = get_user_by_roll(student_id)
 
-    if not user:
-        st.error("User not found!")
-        return
-
     email = user["email"]
-
-    if not email:
-        st.error("Email not registered!")
-        return
 
     st.write(f"Email: **{email}**")
 
@@ -274,7 +390,7 @@ def change_password_flow(student_id):
         st.session_state.otp = otp
 
         if send_otp_email(email, otp):
-            st.success("OTP sent to email")
+            st.success("OTP sent")
 
     if "otp" in st.session_state:
 
@@ -297,14 +413,8 @@ def change_password_flow(student_id):
 
         if st.button("Update Password"):
 
-            if newp == conf and len(newp) >= 6:
+            if newp == conf:
 
                 update_user(student_id, password=newp)
 
                 st.success("Password Updated")
-
-                st.session_state.otp_verified = False
-                st.session_state.otp = None
-
-            else:
-                st.error("Passwords must match and be at least 6 characters")
