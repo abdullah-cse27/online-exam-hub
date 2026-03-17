@@ -1,7 +1,7 @@
 import streamlit as st
 from database import (
     get_user_by_roll,
-    create_empty_user,
+    create_user,
     update_user,
     validate_user
 )
@@ -109,7 +109,7 @@ def login_user():
 
             with st.spinner("Creating account & sending password..."):
 
-                create_empty_user(roll, role="student")
+                create_user(roll, role="student")
 
                 update_user(roll, email=email)
 

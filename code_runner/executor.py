@@ -48,7 +48,7 @@ def is_safe(code):
 
 
 # ===================================================
-# LIMIT RESOURCES (Linux/Mac)
+# LIMIT RESOURCES
 # ===================================================
 
 def limit_resources():
@@ -57,10 +57,7 @@ def limit_resources():
 
         import resource
 
-        # limit memory to 100MB
         resource.setrlimit(resource.RLIMIT_AS, (100 * 1024 * 1024, -1))
-
-        # limit CPU time
         resource.setrlimit(resource.RLIMIT_CPU, (2, 2))
 
     except:
@@ -68,7 +65,7 @@ def limit_resources():
 
 
 # ===================================================
-# RUN CODE
+# RUN PYTHON CODE
 # ===================================================
 
 def run_python_code(code, input_data=None):
@@ -92,7 +89,6 @@ def run_python_code(code, input_data=None):
             tmp.write(code)
             tmp_file = tmp.name
 
-
         result = subprocess.run(
             [sys.executable, tmp_file],
             input=input_data,
@@ -102,8 +98,6 @@ def run_python_code(code, input_data=None):
             preexec_fn=limit_resources if os.name != "nt" else None
         )
 
-
-        # stderr
         if result.stderr:
             return result.stderr.strip()
 
@@ -114,16 +108,13 @@ def run_python_code(code, input_data=None):
 
         return output
 
-
     except subprocess.TimeoutExpired:
 
         return "Execution timed out (possible infinite loop)."
 
-
     except Exception as e:
 
         return f"Execution Error: {str(e)}"
-
 
     finally:
 
@@ -135,24 +126,123 @@ def run_python_code(code, input_data=None):
 
 
 # ===================================================
+# RUN C CODE
+# ===================================================
+
+def run_c_code(code, input_data=None):
+
+    try:
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+
+            c_file = os.path.join(tmpdir, "main.c")
+            exe_file = os.path.join(tmpdir, "main")
+
+            with open(c_file, "w") as f:
+                f.write(code)
+
+            compile_result = subprocess.run(
+                ["gcc", c_file, "-o", exe_file],
+                capture_output=True,
+                text=True
+            )
+
+            if compile_result.stderr:
+                return compile_result.stderr.strip()
+
+            run_result = subprocess.run(
+                [exe_file],
+                input=input_data,
+                capture_output=True,
+                text=True,
+                timeout=3
+            )
+
+            if run_result.stderr:
+                return run_result.stderr.strip()
+
+            return run_result.stdout.strip()
+
+    except Exception as e:
+
+        return f"C Execution Error: {str(e)}"
+
+
+# ===================================================
+# RUN C++ CODE
+# ===================================================
+
+def run_cpp_code(code, input_data=None):
+
+    try:
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+
+            cpp_file = os.path.join(tmpdir, "main.cpp")
+            exe_file = os.path.join(tmpdir, "main")
+
+            with open(cpp_file, "w") as f:
+                f.write(code)
+
+            compile_result = subprocess.run(
+                ["g++", cpp_file, "-o", exe_file],
+                capture_output=True,
+                text=True
+            )
+
+            if compile_result.stderr:
+                return compile_result.stderr.strip()
+
+            run_result = subprocess.run(
+                [exe_file],
+                input=input_data,
+                capture_output=True,
+                text=True,
+                timeout=3
+            )
+
+            if run_result.stderr:
+                return run_result.stderr.strip()
+
+            return run_result.stdout.strip()
+
+    except Exception as e:
+
+        return f"C++ Execution Error: {str(e)}"
+
+
+# ===================================================
+# UNIVERSAL RUNNER
+# ===================================================
+
+def run_code(language, code, input_data=None):
+
+    language = language.lower()
+
+    if language == "python":
+        return run_python_code(code, input_data)
+
+    elif language == "c":
+        return run_c_code(code, input_data)
+
+    elif language in ["cpp", "c++"]:
+        return run_cpp_code(code, input_data)
+
+    else:
+        return "Unsupported language."
+
+
+# ===================================================
 # TEST CASE EVALUATION
 # ===================================================
 
-def evaluate_code(code, test_cases):
-
-    """
-    test_cases format:
-    [
-        {"input": "2 3", "output": "5"},
-        {"input": "5 7", "output": "12"}
-    ]
-    """
+def evaluate_code(language, code, test_cases):
 
     results = []
 
     for case in test_cases:
 
-        output = run_python_code(code, case["input"])
+        output = run_code(language, code, case["input"])
 
         passed = str(output).strip() == str(case["output"]).strip()
 

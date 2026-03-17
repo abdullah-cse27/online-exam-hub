@@ -2,7 +2,7 @@ import streamlit as st
 
 from database import (
     get_all_questions, add_question, save_all_questions,
-    get_user_by_roll, create_empty_user, update_user,
+    get_user_by_roll, create_user, update_user,
     get_all_results, get_all_users,
     write_file, USERS_FILE
 )
@@ -338,24 +338,21 @@ def delete_question_ui():
 
 
 # ======================================================
-# ADD STUDENT
+# ADD STUDENT ➕
 # ======================================================
 
 def add_student_ui():
-
     st.subheader("➕ Add Student")
 
-    roll = st.text_input("Student Roll Number")
+    roll = st.text_input("Roll Number")
+    email = st.text_input("Email")
+    password = st.text_input("Password", type="password")
 
     if st.button("Add Student"):
 
-        if get_user_by_roll(roll):
-            st.error("Student already exists")
-            return
+        create_user(roll, email, password)
 
-        create_empty_user(roll, role="student")
-
-        st.success("Student added")
+        st.success("Student added successfully")
 
 
 # ======================================================

@@ -1,31 +1,106 @@
 C|Variables|Medium|mcq|What is the size of int in most C compilers??|2 bytes|4 bytes|8 bytes|Depends on compiler|B
+
 C|Operators|Medium|mcq|What is the output of printf("%d",5+2*3);?|21|11|16|7|B
+
 C|Loops|Medium|mcq|Which loop executes at least once?|for|while|do while|none|C
+
 C|Pointers|Medium|mcq|Which operator is used to get address of variable?|*|&|%|#|B
+
 C|Arrays|Medium|mcq|Index of first element in array?|1|0|-1|Depends|B
+
 C|Functions|Medium|mcq|Which keyword returns value from function?|stop|break|return|exit|C
+
 C|Syntax|Medium|mcq|Which header is required for printf?|math.h|stdio.h|string.h|stdlib.h|B
+
 C|Pointers|Medium|mcq|Pointer stores?|value|address|operator|loop|B
+
 C|Operators|Medium|mcq|Which is logical AND?|&&|&|||^|A
+
 C|Control|Medium|mcq|Which statement selects multiple options?|for|if|switch|goto|C
+
 Python|Basics|Medium|mcq|Which keyword defines function in Python?|func|define|def|function|C
+
 Python|Data Types|Medium|mcq|Which type stores decimal numbers?|int|float|string|bool|B
+
 Python|Lists|Medium|mcq|Which bracket is used for list?|()|{}|[]|<>|C
+
 Python|Loops|Medium|mcq|Which loop iterates sequence?|for|while|loop|iterate|A
+
 Python|Operators|Medium|mcq|Which operator is exponent?|*|**|^|//|B
+
 Python|Strings|Medium|mcq|Which function returns string length?|size()|len()|length()|count()|B
+
 Python|Input|Medium|mcq|Which function takes input?|scan()|read()|input()|get()|C
+
 Python|Lists|Medium|mcq|Append adds element to?|start|middle|end|none|C
+
 Python|Conditions|Medium|mcq|Which keyword checks condition?|if|loop|test|cond|A
+
 Python|Syntax|Medium|mcq|Python uses indentation for?|loops|conditions|blocks|all|D
+
+Python|loops|Easy|code|Write Python code to print numbers from 1 to 5 each on a new line.|-
+
+1
+2
+3
+4
+5
+
+---
+
+5
+
+Python|strings|Easy|code|Write Python code to print the length of the word Python.|-
+
+6
+
+---
+
+Python
+
+Python|math|Easy|code|Write Python code to print the result of 7 multiplied by 6.|-
+
+42
+
+---
+
+7 6
+
+Python|loops|Medium|code|Write Python code to print numbers from 1 to 3 using a loop.|-
+
+1
+2
+3
+
+---
+
+3
+
+Python|strings|Easy|code|Write Python code to print the word Hello.|-
+
+Hello
+
+---
+
+Hello
+
 DSA|Complexity|Medium|mcq|Time complexity of binary search?|O(n)|O(log n)|O(n log n)|O(1)|B
+
 DSA|Stack|Medium|mcq|Stack follows which principle?|FIFO|LIFO|Random|Priority|B
+
 DSA|Queue|Medium|mcq|Queue follows?|FIFO|LIFO|Stack|Tree|A
+
 DSA|Tree|Medium|mcq|Root node is?|first node|leaf node|last node|null|A
+
 DSA|Graph|Medium|mcq|Graph consists of?|nodes|edges|both|none|C
+
 DSA|Stack|Medium|mcq|Which operation removes element?|push|pop|peek|insert|B
+
 DSA|Queue|Medium|mcq|Insert in queue?|enqueue|push|add|put|A
+
 DSA|Tree|Medium|mcq|Leaf node has?|0 child|1 child|2 child|3 child|A
+
 DSA|Array|Medium|mcq|Array elements stored?|random|contiguous|linked|stack|B
+
 DSA|Search|Medium|mcq|Linear search complexity?|O(n)|O(log n)|O(1)|O(n²)|A
-Python|loops|Medium|mcq|What does range(5) return?|0..4|1..5|0..5|error|A
+

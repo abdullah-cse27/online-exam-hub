@@ -2,8 +2,6 @@
 # FILE: analytics/performance.py
 # ===================================================
 
-# Analytics logic for student results
-
 
 # ===================================================
 # STUDENT SUMMARY
@@ -11,7 +9,7 @@
 
 def get_student_summary(results, student_id):
 
-    student_results = [r for r in results if r[0] == student_id]
+    student_results = [r for r in results if str(r[0]) == str(student_id)]
 
     if not student_results:
         return None
@@ -51,7 +49,7 @@ def get_student_summary(results, student_id):
 
 def subject_performance(results, student_id):
 
-    student_results = [r for r in results if r[0] == student_id]
+    student_results = [r for r in results if str(r[0]) == str(student_id)]
 
     subject_scores = {}
 
@@ -104,7 +102,7 @@ def detect_weak_subjects(results, student_id):
 
 def detect_improvement(results, student_id):
 
-    student_results = [r for r in results if r[0] == student_id]
+    student_results = [r for r in results if str(r[0]) == str(student_id)]
 
     if len(student_results) < 2:
         return "Not enough data"
@@ -170,7 +168,7 @@ def get_top_students(results, limit=10):
 
     for r in results:
 
-        student = r[0]
+        student = str(r[0])
 
         try:
             percent = float(r[4])

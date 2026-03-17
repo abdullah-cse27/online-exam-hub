@@ -45,7 +45,15 @@ def read_file(path):
     ensure_files_exist()
 
     with open(path, "r", encoding="utf-8") as f:
-        return [line.strip() for line in f.readlines() if line.strip()]
+        return f.read()
+
+
+def read_lines(path):
+
+    ensure_files_exist()
+
+    with open(path, "r", encoding="utf-8") as f:
+        return [line.rstrip() for line in f.readlines()]
 
 
 def write_file(path, lines):
@@ -63,7 +71,10 @@ def write_file(path, lines):
 
 def get_user_by_roll(roll):
 
-    for line in read_file(USERS_FILE):
+    for line in read_lines(USERS_FILE):
+
+        if not line.strip():
+            continue
 
         parts = line.split("|")
 
@@ -88,7 +99,7 @@ def get_all_users():
 
     users = []
 
-    for line in read_file(USERS_FILE):
+    for line in read_lines(USERS_FILE):
 
         parts = line.split("|")
 
@@ -98,20 +109,19 @@ def get_all_users():
     return users
 
 
-def create_empty_user(roll, role="student"):
+def create_user(roll, email, password, role="student"):
 
     ensure_files_exist()
 
+    hashed = hash_password(password)
+
     with open(USERS_FILE, "a", encoding="utf-8") as f:
-
-        timestamp = str(int(time.time()))
-
-        f.write(f"{roll}|||{role}|{timestamp}\n")
+        f.write(f"{roll}|{email}|{hashed}|{role}\n")
 
 
 def update_user(roll, email=None, password=None):
 
-    users = read_file(USERS_FILE)
+    users = read_lines(USERS_FILE)
 
     updated = []
 
@@ -150,30 +160,115 @@ def validate_user(roll, password):
 
 
 # ============================
-# QUESTION FUNCTIONS
+# QUESTION PARSER
 # ============================
 
-def get_all_questions():
+def parse_questions():
+
+    raw = read_file(QUESTIONS_FILE)
+
+    blocks = raw.split("\n\n")
 
     questions = []
 
-    for line in read_file(QUESTIONS_FILE):
+    for block in blocks:
 
-        parts = line.split("|")
+        lines = [l.strip() for l in block.split("\n") if l.strip()]
 
-        if len(parts) >= 7:
-            questions.append(parts)
+        if not lines:
+            continue
+
+        header = lines[0].split("|")
+
+        if len(header) < 5:
+            continue
+
+        subject = header[0]
+        topic = header[1]
+        difficulty = header[2]
+        qtype = header[3]
+        question = header[4]
+
+        # ============================
+        # MCQ QUESTIONS
+        # ============================
+
+        if qtype == "mcq":
+
+            if len(header) < 10:
+                continue
+
+            optionA = header[5]
+            optionB = header[6]
+            optionC = header[7]
+            optionD = header[8]
+            answer = header[9]
+
+            questions.append([
+                subject,
+                topic,
+                difficulty,
+                "mcq",
+                question,
+                optionA,
+                optionB,
+                optionC,
+                optionD,
+                answer
+            ])
+
+        # ============================
+        # CODING QUESTIONS
+        # ============================
+
+        elif qtype == "code":
+
+            expected = []
+            tests = []
+
+            separator = False
+
+            for line in lines[1:]:
+
+                if line == "---":
+                    separator = True
+                    continue
+
+                if not separator:
+                    expected.append(line)
+                else:
+                    tests.append(line)
+
+            expected_output = "\n".join(expected)
+
+            test_cases = [[t] for t in tests]
+
+            questions.append([
+                subject,
+                topic,
+                difficulty,
+                "code",
+                question,
+                "-",
+                expected_output,
+                "",
+                "",
+                "",
+                test_cases
+            ])
 
     return questions
 
 
+# ============================
+# QUESTION FUNCTIONS
+# ============================
+
+def get_all_questions():
+    return parse_questions()
+
+
 def add_question(question_line):
-
-    parts = question_line.split("|")
-
-    if len(parts) < 7:
-        print("Invalid question format skipped")
-        return
 
     with open(QUESTIONS_FILE, "a", encoding="utf-8") as f:
         f.write(question_line + "\n")
@@ -181,7 +276,7 @@ def add_question(question_line):
 
 def save_all_questions(question_list):
 
-    formatted = ["|".join(q) for q in question_list if len(q) >= 7]
+    formatted = ["|".join(q) for q in question_list if len(q) >= 5]
 
     write_file(QUESTIONS_FILE, formatted)
 
@@ -202,7 +297,6 @@ def get_mcq_questions(subject):
 
 
 def get_all_subjects():
-
     qs = get_all_questions()
 
     subjects = {q[0] for q in qs if len(q) > 0}
@@ -246,11 +340,11 @@ def get_all_results():
 
     results = []
 
-    for line in read_file(RESULTS_FILE):
+    for line in read_lines(RESULTS_FILE):
 
         parts = line.split("|")
 
-        if len(parts) >= 7:
+        if len(parts) >= 6:
             results.append(parts)
 
     return results
@@ -260,8 +354,7 @@ def get_result(student_id):
 
     results = get_all_results()
 
-    filtered = [r for r in results if r[0] == student_id]
-
+    filtered = [r for r in results if str(r[0]) == str(student_id)]
     return filtered[-1] if filtered else None
 
 
@@ -275,7 +368,7 @@ def get_leaderboard():
 
         try:
 
-            student = r[0]
+            student = str(r[0])
             percent = float(r[4])
 
             if student not in best_scores or percent > best_scores[student]:
@@ -302,7 +395,7 @@ def count_results():
 
 def get_attempts(roll, subject):
 
-    for line in read_file(ATTEMPTS_FILE):
+    for line in read_lines(ATTEMPTS_FILE):
 
         parts = line.split("|")
 
@@ -320,7 +413,7 @@ def get_attempts(roll, subject):
 
 def increase_attempt(roll, subject):
 
-    lines = read_file(ATTEMPTS_FILE)
+    lines = read_lines(ATTEMPTS_FILE)
 
     updated = []
 
@@ -356,7 +449,7 @@ def increase_attempt(roll, subject):
 
 def record_failed_login(roll):
 
-    attempts = read_file(LOGIN_ATTEMPTS_FILE)
+    attempts = read_lines(LOGIN_ATTEMPTS_FILE)
 
     updated = []
 
@@ -380,7 +473,7 @@ def record_failed_login(roll):
 
 def get_failed_attempts(roll):
 
-    for line in read_file(LOGIN_ATTEMPTS_FILE):
+    for line in read_lines(LOGIN_ATTEMPTS_FILE):
 
         r, count = line.split("|")
 
@@ -392,7 +485,7 @@ def get_failed_attempts(roll):
 
 def reset_failed_attempts(roll):
 
-    attempts = read_file(LOGIN_ATTEMPTS_FILE)
+    attempts = read_lines(LOGIN_ATTEMPTS_FILE)
 
     updated = [line for line in attempts if not line.startswith(roll + "|")]
 

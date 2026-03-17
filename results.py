@@ -49,7 +49,7 @@ def load_student_results(student_id):
             if len(parts) < 6:
                 continue
 
-            if parts[0] == student_id:
+            if parts[0] == str(student_id):
                 results.append(parts)
 
     return results

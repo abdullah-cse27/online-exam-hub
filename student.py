@@ -264,16 +264,26 @@ def student_panel():
 
         st.subheader("🏆 Leaderboard")
 
-        scores = []
+        if not all_results:
+            st.warning("No results available yet.")
+            return
+
+        scores = {}
 
         for r in all_results:
-            scores.append((r[0], float(r[4])))
 
-        scores.sort(key=lambda x: x[1], reverse=True)
+            roll = str(r[0])
+            percent = float(r[4])
 
-        for i, s in enumerate(scores[:10]):
-            st.write(f"{i+1}. {s[0]} — {s[1]}%")
+            if roll not in scores:
+                scores[roll] = percent
+            else:
+                scores[roll] = max(scores[roll], percent)
 
+        sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+
+        for i, (roll, percent) in enumerate(sorted_scores[:10]):
+            st.write(f"{i+1}. {roll} — {percent}%")
     # ===================================================
     # VIEW RESULT
     # ===================================================
@@ -302,11 +312,17 @@ def student_panel():
 
     elif choice == "Performance Analytics":
 
-        if not summary:
-            st.warning("No analytics available yet")
-            return
-
         st.subheader("📈 Performance Analytics")
+
+        summary = get_student_summary(all_results, student_id)
+
+        if summary:
+
+            col1, col2, col3 = st.columns(3)
+
+            col1.metric("Total Exams", summary["total_exams"])
+            col2.metric("Average Score", f"{summary['average_score']}%")
+            col3.metric("Subjects Covered", len(summary["subjects"]))
 
         weak = detect_weak_subjects(all_results, student_id)
 
@@ -318,6 +334,8 @@ def student_panel():
                 st.warning(w)
 
         rec = generate_recommendations(all_results, student_id)
+
+        st.subheader("💡 Recommendations")
 
         for r in rec:
             st.info(r)
