@@ -1,4 +1,4 @@
-C|Variables|Medium|mcq|What is the size of int in most C compilers?|2 bytes|4 bytes|8 bytes|Depends on compiler|B
+C|Variables|Medium|mcq|What is the size of int in most C compilers??|2 bytes|4 bytes|8 bytes|Depends on compiler|B
 C|Operators|Medium|mcq|What is the output of printf("%d",5+2*3);?|21|11|16|7|B
 C|Loops|Medium|mcq|Which loop executes at least once?|for|while|do while|none|C
 C|Pointers|Medium|mcq|Which operator is used to get address of variable?|*|&|%|#|B
@@ -8,11 +8,6 @@ C|Syntax|Medium|mcq|Which header is required for printf?|math.h|stdio.h|string.h
 C|Pointers|Medium|mcq|Pointer stores?|value|address|operator|loop|B
 C|Operators|Medium|mcq|Which is logical AND?|&&|&|||^|A
 C|Control|Medium|mcq|Which statement selects multiple options?|for|if|switch|goto|C
-C|Loops|Medium|code|Write a program to print sum of first N numbers.|5|15
-C|Loops|Medium|code|Write a program to print factorial of N.|5|120
-C|Conditions|Medium|code|Write program to check even or odd.|4|Even
-C|Math|Medium|code|Write program to find square of number.|6|36
-C|Loops|Medium|code|Write program to print numbers from 1 to N.|5|1 2 3 4 5
 Python|Basics|Medium|mcq|Which keyword defines function in Python?|func|define|def|function|C
 Python|Data Types|Medium|mcq|Which type stores decimal numbers?|int|float|string|bool|B
 Python|Lists|Medium|mcq|Which bracket is used for list?|()|{}|[]|<>|C
@@ -23,11 +18,6 @@ Python|Input|Medium|mcq|Which function takes input?|scan()|read()|input()|get()|
 Python|Lists|Medium|mcq|Append adds element to?|start|middle|end|none|C
 Python|Conditions|Medium|mcq|Which keyword checks condition?|if|loop|test|cond|A
 Python|Syntax|Medium|mcq|Python uses indentation for?|loops|conditions|blocks|all|D
-Python|Loops|Medium|code|Print sum of first N numbers.|5|15
-Python|Math|Medium|code|Print square of number.|7|49
-Python|Conditions|Medium|code|Check if number is positive or negative.|5|Positive
-Python|Loops|Medium|code|Print numbers from 1 to N.|5|1 2 3 4 5
-Python|Math|Medium|code|Print cube of number.|3|27
 DSA|Complexity|Medium|mcq|Time complexity of binary search?|O(n)|O(log n)|O(n log n)|O(1)|B
 DSA|Stack|Medium|mcq|Stack follows which principle?|FIFO|LIFO|Random|Priority|B
 DSA|Queue|Medium|mcq|Queue follows?|FIFO|LIFO|Stack|Tree|A
@@ -38,8 +28,3 @@ DSA|Queue|Medium|mcq|Insert in queue?|enqueue|push|add|put|A
 DSA|Tree|Medium|mcq|Leaf node has?|0 child|1 child|2 child|3 child|A
 DSA|Array|Medium|mcq|Array elements stored?|random|contiguous|linked|stack|B
 DSA|Search|Medium|mcq|Linear search complexity?|O(n)|O(log n)|O(1)|O(n²)|A
-DSA|Arrays|Medium|code|Find maximum number in array.|5 2 9 1|9
-DSA|Arrays|Medium|code|Find minimum number in array.|5 2 9 1|1
-DSA|Math|Medium|code|Check if number is prime.|7|Prime
-DSA|Math|Medium|code|Check if number is palindrome.|121|Palindrome
-DSA|Math|Medium|code|Find sum of digits.|123|6
