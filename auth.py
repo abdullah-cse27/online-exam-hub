@@ -12,23 +12,34 @@ import random, string, time
 # ====================================
 # PASSWORD GENERATOR
 # ====================================
+
 def generate_password():
+
     chars = string.ascii_letters + string.digits
+
     return "".join(random.choice(chars) for _ in range(8))
 
 
 # ====================================
 # LOGIN USER
 # ====================================
+
 def login_user():
 
-    # Initialize session states
-    st.session_state.setdefault("flow", None)
-    st.session_state.setdefault("otp", None)
-    st.session_state.setdefault("otp_time", None)
-    st.session_state.setdefault("otp_verified", False)
-    st.session_state.setdefault("temp_roll", None)
-    st.session_state.setdefault("login_attempts", 0)
+    # Initialize session states safely
+    defaults = {
+        "flow": None,
+        "otp": None,
+        "otp_time": None,
+        "otp_verified": False,
+        "temp_roll": None,
+        "login_attempts": 0
+    }
+
+    for k, v in defaults.items():
+        if k not in st.session_state:
+            st.session_state[k] = v
+
 
     st.subheader("🔐 Login")
 
@@ -39,9 +50,11 @@ def login_user():
     if roll == "":
         return
 
-    # ====================================
-    # ADMIN LOGIN
-    # ====================================
+
+# =========================================================
+# ADMIN LOGIN
+# =========================================================
+
     if role == "admin":
 
         admin_pass = st.text_input("Admin Password", type="password")
@@ -63,22 +76,25 @@ def login_user():
                 st.rerun()
 
             else:
+
                 st.error("Incorrect Admin Credentials!")
 
         return
 
 
-    # ====================================
-    # STUDENT LOGIN FLOW
-    # ====================================
+# =========================================================
+# STUDENT LOGIN FLOW
+# =========================================================
 
     user = get_user_by_roll(roll)
+
     st.session_state.temp_roll = roll
 
 
-    # ------------------------------------
-    # Student not registered
-    # ------------------------------------
+# ---------------------------------------------------------
+# STUDENT NOT REGISTERED
+# ---------------------------------------------------------
+
     if user is None:
 
         st.info("This Roll Number is not registered.")
@@ -112,9 +128,10 @@ def login_user():
         return
 
 
-    # ------------------------------------
-    # Email not set
-    # ------------------------------------
+# ---------------------------------------------------------
+# EMAIL NOT SET
+# ---------------------------------------------------------
+
     if user["email"] == "":
 
         st.warning("Your email is not set. Enter email.")
@@ -142,9 +159,10 @@ def login_user():
         return
 
 
-    # ------------------------------------
-    # Password missing
-    # ------------------------------------
+# ---------------------------------------------------------
+# PASSWORD MISSING
+# ---------------------------------------------------------
+
     if user["password"] == "":
 
         with st.spinner("Sending new password..."):
@@ -164,9 +182,10 @@ def login_user():
         return
 
 
-    # ====================================
-    # OTP RESET FLOW
-    # ====================================
+# =========================================================
+# OTP RESET FLOW
+# =========================================================
+
     if st.session_state.flow == "otp_stage":
 
         st.subheader("🔑 OTP Verification")
@@ -176,8 +195,11 @@ def login_user():
         if st.button("Verify OTP"):
 
             if time.time() - st.session_state.otp_time > 300:
+
                 st.error("OTP expired. Request again.")
+
                 st.session_state.flow = None
+
                 return
 
             if entered_otp == st.session_state.otp:
@@ -192,15 +214,19 @@ def login_user():
 
                 st.error("Incorrect OTP!")
 
+
         if st.session_state.otp_verified:
 
             new_pass = st.text_input("New Password", type="password")
+
             confirm_pass = st.text_input("Confirm Password", type="password")
 
             if st.button("Update Password"):
 
                 if len(new_pass) < 6:
+
                     st.error("Password must be at least 6 characters")
+
                     return
 
                 if new_pass == confirm_pass:
@@ -222,9 +248,10 @@ def login_user():
         return
 
 
-    # ====================================
-    # NORMAL LOGIN
-    # ====================================
+# =========================================================
+# NORMAL LOGIN
+# =========================================================
+
     st.subheader("Enter Your Password")
 
     password = st.text_input("Password", type="password")
@@ -238,6 +265,7 @@ def login_user():
         st.session_state.otp_time = time.time()
 
         with st.spinner("Sending OTP..."):
+
             send_otp_email(user["email"], otp)
 
         st.success("OTP sent to your email!")
@@ -250,7 +278,9 @@ def login_user():
     if st.button("Login"):
 
         if st.session_state.login_attempts >= 5:
+
             st.error("Too many login attempts. Try later.")
+
             return
 
         if validate_user(roll, password):
@@ -263,7 +293,7 @@ def login_user():
             st.session_state.login_time = time.time()
             st.session_state.page = "Student Panel"
 
-            # reset
+            # reset states
             st.session_state.flow = None
             st.session_state.otp = None
             st.session_state.otp_verified = False

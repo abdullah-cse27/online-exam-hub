@@ -5,14 +5,14 @@
 import streamlit as st
 import os
 
-from database import get_all_results
+from database import get_all_results, get_leaderboard
 from analytics.performance import (
     get_student_summary,
     detect_weak_subjects,
     generate_recommendations
 )
 
-RESULT_FILE = "data/results.txt"
+RESULT_FILE = "Data/results.txt"
 
 
 # =====================================================
@@ -21,13 +21,38 @@ RESULT_FILE = "data/results.txt"
 
 def save_result(student_id, subject, score, total, percentage, grade):
 
-    os.makedirs("data", exist_ok=True)
+    os.makedirs("Data", exist_ok=True)
 
-    with open(RESULT_FILE, "a") as file:
+    record = f"{student_id}|{subject}|{score}|{total}|{percentage}|{grade}\n"
 
-        record = f"{student_id}|{subject}|{score}|{total}|{percentage}|{grade}\n"
-
+    with open(RESULT_FILE, "a", encoding="utf-8") as file:
         file.write(record)
+
+
+# =====================================================
+# LOAD STUDENT RESULTS
+# =====================================================
+
+def load_student_results(student_id):
+
+    results = []
+
+    if not os.path.exists(RESULT_FILE):
+        return results
+
+    with open(RESULT_FILE, "r", encoding="utf-8") as file:
+
+        for line in file:
+
+            parts = line.strip().split("|")
+
+            if len(parts) < 6:
+                continue
+
+            if parts[0] == student_id:
+                results.append(parts)
+
+    return results
 
 
 # =====================================================
@@ -36,25 +61,9 @@ def save_result(student_id, subject, score, total, percentage, grade):
 
 def show_result(student_id):
 
-    if not os.path.exists(RESULT_FILE):
-
-        st.warning("No results available.")
-        return
-
-    results = []
-
-    with open(RESULT_FILE, "r") as file:
-
-        for line in file:
-
-            data = line.strip().split("|")
-
-            if data[0] == student_id:
-
-                results.append(data)
+    results = load_student_results(student_id)
 
     if not results:
-
         st.warning("No result found.")
         return
 
@@ -137,7 +146,6 @@ def show_result(student_id):
         st.subheader("⚠ Weak Subjects")
 
         for w in weak:
-
             st.warning(w)
 
 
@@ -150,7 +158,6 @@ def show_result(student_id):
     rec = generate_recommendations(all_results, student_id)
 
     for r in rec:
-
         st.info(r)
 
 
@@ -161,7 +168,6 @@ def show_result(student_id):
     st.subheader("📜 Exam History")
 
     for r in results:
-
         st.write(f"{r[1]} — {r[2]}/{r[3]} ({r[4]}%) Grade {r[5]}")
 
 
@@ -178,26 +184,16 @@ def show_result(student_id):
 
 def show_leaderboard():
 
-    if not os.path.exists(RESULT_FILE):
+    leaderboard = get_leaderboard()
+
+    if not leaderboard:
+        st.info("Leaderboard not available yet.")
         return
-
-    data = []
-
-    with open(RESULT_FILE, "r") as file:
-
-        for line in file:
-
-            parts = line.strip().split("|")
-
-            student = parts[0]
-            percentage = float(parts[4])
-
-            data.append((student, percentage))
-
-    data.sort(key=lambda x: x[1], reverse=True)
 
     st.subheader("🏆 Leaderboard")
 
-    for i, entry in enumerate(data[:5], start=1):
+    for i, entry in enumerate(leaderboard[:5], start=1):
 
-        st.write(f"{i}. {entry[0]} — {entry[1]}%")
+        student, percent = entry
+
+        st.write(f"{i}. {student} — {percent}%")

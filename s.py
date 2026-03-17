@@ -1,14 +1,18 @@
-import smtplib
+import hashlib
 
-server = smtplib.SMTP("smtp.gmail.com", 587)
-server.starttls()
+def word_to_sha256(word):
+    # convert string to bytes
+    word_bytes = word.encode('utf-8')
+    
+    # create sha256 hash
+    sha256_hash = hashlib.sha256(word_bytes)
+    
+    # convert to hexadecimal
+    return sha256_hash.hexdigest()
 
-server.login("shahabdulla09856@gmail.com", "ahbrpzfbvojtixqr")
 
-server.sendmail(
-    "shahabdulla09856@gmail.com",
-    "abdulah956922@gmail.com",
-    "Test"
-)
+# Example
+text = input("Enter word: ")
+hashed_value = word_to_sha256(text)
 
-server.quit()
+print("SHA256 Hash:", hashed_value)

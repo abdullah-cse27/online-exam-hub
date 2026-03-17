@@ -28,3 +28,4 @@ DSA|Queue|Medium|mcq|Insert in queue?|enqueue|push|add|put|A
 DSA|Tree|Medium|mcq|Leaf node has?|0 child|1 child|2 child|3 child|A
 DSA|Array|Medium|mcq|Array elements stored?|random|contiguous|linked|stack|B
 DSA|Search|Medium|mcq|Linear search complexity?|O(n)|O(log n)|O(1)|O(n²)|A
+Python|loops|Medium|mcq|What does range(5) return?|0..4|1..5|0..5|error|A

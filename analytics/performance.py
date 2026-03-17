@@ -2,7 +2,7 @@
 # FILE: analytics/performance.py
 # ===================================================
 
-# This file contains analytics logic for student results
+# Analytics logic for student results
 
 
 # ===================================================
@@ -21,20 +21,63 @@ def get_student_summary(results, student_id):
 
     for r in student_results:
 
-        score = int(r[2])
-        total = int(r[3])
+        try:
+            score = int(r[2])
+            total = int(r[3])
 
-        percent = (score / total) * 100
+            percent = (score / total) * 100
 
-        scores.append(percent)
-        subjects.add(r[1])
+            scores.append(percent)
+            subjects.add(r[1])
+
+        except:
+            continue
+
+    if not scores:
+        return None
 
     return {
-        "total_exams": len(student_results),
+        "total_exams": len(scores),
         "average_score": round(sum(scores) / len(scores), 2),
         "best_score": round(max(scores), 2),
+        "worst_score": round(min(scores), 2),
         "subjects": list(subjects)
     }
+
+
+# ===================================================
+# SUBJECT PERFORMANCE
+# ===================================================
+
+def subject_performance(results, student_id):
+
+    student_results = [r for r in results if r[0] == student_id]
+
+    subject_scores = {}
+
+    for r in student_results:
+
+        subject = r[1]
+
+        try:
+            percent = float(r[4])
+        except:
+            continue
+
+        if subject not in subject_scores:
+            subject_scores[subject] = []
+
+        subject_scores[subject].append(percent)
+
+    summary = {}
+
+    for s in subject_scores:
+
+        avg = sum(subject_scores[s]) / len(subject_scores[s])
+
+        summary[s] = round(avg, 2)
+
+    return summary
 
 
 # ===================================================
@@ -43,19 +86,49 @@ def get_student_summary(results, student_id):
 
 def detect_weak_subjects(results, student_id):
 
-    student_results = [r for r in results if r[0] == student_id]
+    perf = subject_performance(results, student_id)
 
     weak = []
 
-    for r in student_results:
+    for subject, score in perf.items():
 
-        subject = r[1]
-        percent = float(r[4])
-
-        if percent < 60:
+        if score < 60:
             weak.append(subject)
 
-    return list(set(weak))
+    return weak
+
+
+# ===================================================
+# IMPROVEMENT TREND
+# ===================================================
+
+def detect_improvement(results, student_id):
+
+    student_results = [r for r in results if r[0] == student_id]
+
+    if len(student_results) < 2:
+        return "Not enough data"
+
+    scores = []
+
+    for r in student_results:
+
+        try:
+            scores.append(float(r[4]))
+        except:
+            continue
+
+    if len(scores) < 2:
+        return "Not enough data"
+
+    if scores[-1] > scores[-2]:
+        return "Improving 📈"
+
+    elif scores[-1] < scores[-2]:
+        return "Performance dropped ⚠"
+
+    else:
+        return "Stable"
 
 
 # ===================================================
@@ -78,4 +151,45 @@ def generate_recommendations(results, student_id):
 
             rec.append(f"Practice more questions in {w}")
 
+    trend = detect_improvement(results, student_id)
+
+    rec.append(f"Performance trend: {trend}")
+
+    rec.append("Try coding practice to improve problem solving.")
+
     return rec
+
+
+# ===================================================
+# TOP STUDENTS (Leaderboard Helper)
+# ===================================================
+
+def get_top_students(results, limit=10):
+
+    scores = {}
+
+    for r in results:
+
+        student = r[0]
+
+        try:
+            percent = float(r[4])
+        except:
+            continue
+
+        if student not in scores:
+            scores[student] = []
+
+        scores[student].append(percent)
+
+    avg_scores = []
+
+    for student in scores:
+
+        avg = sum(scores[student]) / len(scores[student])
+
+        avg_scores.append((student, round(avg, 2)))
+
+    avg_scores.sort(key=lambda x: x[1], reverse=True)
+
+    return avg_scores[:limit]

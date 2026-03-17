@@ -6,7 +6,7 @@ import time
 # FILE PATHS
 # ============================
 
-DATA_FOLDER = "data"
+DATA_FOLDER = "Data"
 
 USERS_FILE = os.path.join(DATA_FOLDER, "users.txt")
 QUESTIONS_FILE = os.path.join(DATA_FOLDER, "questions.txt")
@@ -37,7 +37,7 @@ def ensure_files_exist():
 
     for path in files:
         if not os.path.exists(path):
-            open(path, "a").close()
+            open(path, "a", encoding="utf-8").close()
 
 
 def read_file(path):
@@ -100,6 +100,8 @@ def get_all_users():
 
 def create_empty_user(roll, role="student"):
 
+    ensure_files_exist()
+
     with open(USERS_FILE, "a", encoding="utf-8") as f:
 
         timestamp = str(int(time.time()))
@@ -124,10 +126,10 @@ def update_user(roll, email=None, password=None):
 
         if user_roll == roll:
 
-            if email:
+            if email is not None:
                 user_email = email
 
-            if password:
+            if password is not None:
                 user_pass = hash_password(password)
 
         updated.append(f"{user_roll}|{user_email}|{user_pass}|{user_role}")
@@ -159,8 +161,7 @@ def get_all_questions():
 
         parts = line.split("|")
 
-        # VALID QUESTION FORMAT CHECK
-        if len(parts) >= 10:
+        if len(parts) >= 7:
             questions.append(parts)
 
     return questions
@@ -170,8 +171,7 @@ def add_question(question_line):
 
     parts = question_line.split("|")
 
-    # SAFETY CHECK
-    if len(parts) < 10:
+    if len(parts) < 7:
         print("Invalid question format skipped")
         return
 
@@ -181,9 +181,24 @@ def add_question(question_line):
 
 def save_all_questions(question_list):
 
-    formatted = ["|".join(q) for q in question_list if len(q) >= 10]
+    formatted = ["|".join(q) for q in question_list if len(q) >= 7]
 
     write_file(QUESTIONS_FILE, formatted)
+
+
+def get_questions_by_subject(subject):
+
+    return [q for q in get_all_questions() if q[0] == subject]
+
+
+def get_coding_questions(subject):
+
+    return [q for q in get_all_questions() if q[0] == subject and q[3] == "code"]
+
+
+def get_mcq_questions(subject):
+
+    return [q for q in get_all_questions() if q[0] == subject and q[3] == "mcq"]
 
 
 def get_all_subjects():
@@ -193,6 +208,16 @@ def get_all_subjects():
     subjects = {q[0] for q in qs if len(q) > 0}
 
     return sorted(subjects)
+
+
+def get_latest_subject():
+
+    qs = get_all_questions()
+
+    if not qs:
+        return None
+
+    return qs[-1][0]
 
 
 def count_questions():
@@ -205,6 +230,8 @@ def count_questions():
 # ============================
 
 def save_result(student_id, subject, score, total, percentage, grade):
+
+    ensure_files_exist()
 
     timestamp = str(int(time.time()))
 
@@ -236,6 +263,32 @@ def get_result(student_id):
     filtered = [r for r in results if r[0] == student_id]
 
     return filtered[-1] if filtered else None
+
+
+def get_leaderboard():
+
+    results = get_all_results()
+
+    best_scores = {}
+
+    for r in results:
+
+        try:
+
+            student = r[0]
+            percent = float(r[4])
+
+            if student not in best_scores or percent > best_scores[student]:
+                best_scores[student] = percent
+
+        except:
+            continue
+
+    leaderboard = list(best_scores.items())
+
+    leaderboard.sort(key=lambda x: x[1], reverse=True)
+
+    return leaderboard[:10]
 
 
 def count_results():

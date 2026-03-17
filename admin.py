@@ -3,8 +3,10 @@ import streamlit as st
 from database import (
     get_all_questions, add_question, save_all_questions,
     get_user_by_roll, create_empty_user, update_user,
-    get_all_results, get_all_users
+    get_all_results, get_all_users,
+    write_file, USERS_FILE
 )
+
 
 # ======================================================
 # ADMIN PANEL MAIN
@@ -87,7 +89,7 @@ def dashboard():
     questions = get_all_questions()
     results = get_all_results()
 
-    students = [u for u in users if u[3] == "student"]
+    students = [u for u in users if len(u) >= 4 and u[3] == "student"]
 
     col1, col2, col3 = st.columns(3)
 
@@ -119,15 +121,9 @@ def add_question_ui():
     subject = st.text_input("Subject")
     topic = st.text_input("Topic")
 
-    difficulty = st.selectbox(
-        "Difficulty",
-        ["Easy", "Medium", "Hard"]
-    )
+    difficulty = st.selectbox("Difficulty",["Easy","Medium","Hard"])
 
-    qtype = st.selectbox(
-        "Question Type",
-        ["MCQ", "Coding"]
-    )
+    qtype = st.selectbox("Question Type",["MCQ","Coding"])
 
     question = st.text_area("Enter Question")
 
@@ -143,7 +139,7 @@ def add_question_ui():
             B = st.text_input("Option B")
             D = st.text_input("Option D")
 
-        correct = st.selectbox("Correct Option", ["A", "B", "C", "D"])
+        correct = st.selectbox("Correct Option",["A","B","C","D"])
 
         if st.button("Save Question"):
 
@@ -163,7 +159,6 @@ def add_question_ui():
         st.subheader("💻 Coding Question")
 
         sample_input = st.text_input("Sample Input (optional)")
-
         expected_output = st.text_input("Expected Output")
 
         if st.button("Save Coding Question"):
@@ -195,7 +190,6 @@ def view_questions_ui():
         return
 
     search = st.text_input("Search Question")
-
     subject_filter = st.text_input("Filter by Subject")
 
     for i, q in enumerate(qs):
@@ -239,7 +233,6 @@ D) {q[8]}
 💻 **Coding Question**
 
 **Expected Output:** {q[6]}
-
 ---
 """)
 
@@ -259,13 +252,13 @@ def edit_question_ui():
         return
 
     index = st.selectbox("Select Question", list(range(len(qs))))
-
     q = qs[index]
 
     subject = st.text_input("Subject", q[0])
     topic = st.text_input("Topic", q[1])
 
     diff_list = ["Easy","Medium","Hard"]
+
     difficulty = st.selectbox(
         "Difficulty",
         diff_list,
@@ -329,6 +322,10 @@ def delete_question_ui():
 
     qs = get_all_questions()
 
+    if not qs:
+        st.warning("No questions available.")
+        return
+
     index = st.selectbox("Select Question", list(range(len(qs))))
 
     if st.button("Delete"):
@@ -371,7 +368,7 @@ def view_students_ui():
 
     users = get_all_users()
 
-    students = [u for u in users if u[3] == "student"]
+    students = [u for u in users if len(u)>=4 and u[3]=="student"]
 
     for roll,email,passwd,role in students:
 
@@ -398,6 +395,9 @@ def view_results_ui():
 
     for r in results:
 
+        if len(r) < 6:
+            continue
+
         st.write(
             f"{r[0]} | {r[1]} | {r[2]}/{r[3]} | {r[4]}% | {r[5]}"
         )
@@ -413,14 +413,22 @@ def leaderboard_ui():
 
     results = get_all_results()
 
-    scores = []
+    scores = {}
 
     for r in results:
-        scores.append((r[0],float(r[4])))
 
-    scores.sort(key=lambda x:x[1], reverse=True)
+        if len(r) < 6:
+            continue
 
-    for i,s in enumerate(scores[:10]):
+        student = r[0]
+        percent = float(r[4])
+
+        if student not in scores or percent > scores[student]:
+            scores[student] = percent
+
+    leaderboard = sorted(scores.items(), key=lambda x:x[1], reverse=True)
+
+    for i,s in enumerate(leaderboard[:10]):
 
         st.write(f"{i+1}. {s[0]} — {s[1]}%")
 
@@ -439,6 +447,9 @@ def subject_analytics():
 
     for r in results:
 
+        if len(r) < 6:
+            continue
+
         subject = r[1]
         percent = float(r[4])
 
@@ -452,6 +463,8 @@ def subject_analytics():
         avg = sum(subjects[s]) / len(subjects[s])
 
         st.write(f"{s} → Average Score: {round(avg,2)}%")
+
+
 # ======================================================
 # EDIT STUDENT
 # ======================================================
@@ -462,7 +475,7 @@ def edit_student_ui():
 
     users = get_all_users()
 
-    students = [u for u in users if u[3] == "student"]
+    students = [u for u in users if len(u)>=4 and u[3]=="student"]
 
     if not students:
         st.warning("No students found.")
@@ -493,7 +506,7 @@ def delete_student_ui():
 
     users = get_all_users()
 
-    students = [u for u in users if u[3] == "student"]
+    students = [u for u in users if len(u)>=4 and u[3]=="student"]
 
     if not students:
         st.warning("No students found.")
@@ -506,8 +519,6 @@ def delete_student_ui():
     if st.button("Delete Student"):
 
         remaining = [u for u in users if u[0] != selected]
-
-        from database import write_file, USERS_FILE
 
         lines = ["|".join(u) for u in remaining]
 

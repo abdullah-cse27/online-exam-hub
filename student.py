@@ -1,5 +1,5 @@
 # ===================================================
-# FILE: student.py
+# FILE: student.py (STABLE FIXED VERSION)
 # ===================================================
 
 import streamlit as st
@@ -23,6 +23,42 @@ from analytics.performance import (
     generate_recommendations
 )
 
+# ===================================================
+# LOAD STUDY MATERIAL
+# ===================================================
+
+def load_study_material():
+
+    material = {}
+
+    try:
+        with open("Data/study_material.txt", "r", encoding="utf-8") as f:
+
+            for line in f:
+
+                parts = line.strip().split("|")
+
+                if len(parts) < 5:
+                    continue
+
+                subject, topic, explanation, question, answer = parts
+
+                subject = subject.lower()
+
+                if subject not in material:
+                    material[subject] = {}
+
+                material[subject][topic] = {
+                    "explanation": explanation,
+                    "question": question,
+                    "answer": answer
+                }
+
+    except:
+        pass
+
+    return material
+
 
 # ===================================================
 # STUDENT PANEL
@@ -32,19 +68,27 @@ def student_panel():
 
     st.header("🎓 Student Panel")
 
+    # ---------------------------
+    # SESSION SAFETY
+    # ---------------------------
+
+    if "userid" not in st.session_state:
+        st.error("User not logged in")
+        return
+
+    if "exam_active" not in st.session_state:
+        st.session_state.exam_active = False
+
     student_id = st.session_state.userid
 
     all_results = get_all_results()
-
     summary = get_student_summary(all_results, student_id)
 
     # ===================================================
-    # EXAM LOCK
+    # EXAM ACTIVE
     # ===================================================
 
-    if st.session_state.get("exam_active", False):
-
-        st.warning("⚠ Exam in progress. Navigation disabled.")
+    if st.session_state.exam_active:
 
         start_exam(
             st.session_state.userid,
@@ -53,27 +97,23 @@ def student_panel():
 
         return
 
-
     # ===================================================
-    # SIDEBAR
+    # MENU
     # ===================================================
 
     menu = [
         "Dashboard",
+        "Reading Mode",
         "Latest Quiz",
         "All Quizzes",
-        "Recommended Quizzes",
         "Start Exam",
-        "Coding Practice",
         "Leaderboard",
         "View Result",
-        "Exam History",
         "Performance Analytics",
         "Change Password"
     ]
 
     choice = st.sidebar.selectbox("Menu", menu)
-
 
     # ===================================================
     # DASHBOARD
@@ -93,8 +133,56 @@ def student_panel():
 
         st.divider()
 
-        st.info("Use sidebar to start exams or practice coding.")
+        st.info("Use sidebar to explore learning modules and quizzes.")
 
+    # ===================================================
+    # READING MODE
+    # ===================================================
+
+    elif choice == "Reading Mode":
+
+        st.subheader("📚 Study Mode")
+
+        material = load_study_material()
+
+        if not material:
+            st.warning("No study material available.")
+            return
+
+        subjects = list(material.keys())
+
+        subject = st.selectbox("Choose Subject", subjects)
+
+        topics = list(material[subject].keys())
+
+        topic = st.selectbox("Choose Topic", topics)
+
+        st.markdown("### 📖 Explanation")
+        st.write(material[subject][topic]["explanation"])
+
+        st.divider()
+
+        st.markdown("### 🧠 Practice Question")
+        st.write(material[subject][topic]["question"])
+
+        user_answer = st.text_input("Your Answer")
+
+        if st.button("Check Answer"):
+
+            correct = material[subject][topic]["answer"]
+
+            if user_answer.strip().lower() == correct.lower():
+                st.success("Correct Answer ✅")
+            else:
+                st.error(f"Correct Answer: {correct}")
+
+        st.divider()
+
+        if st.button("Start Topic Quiz"):
+
+            st.session_state.exam_subject = subject
+            st.session_state.exam_active = True
+            st.rerun()
 
     # ===================================================
     # LATEST QUIZ
@@ -117,9 +205,8 @@ def student_panel():
         if st.button("Start Latest Quiz"):
 
             st.session_state.exam_subject = latest
-            st.session_state.show_rules = True
+            st.session_state.exam_active = True
             st.rerun()
-
 
     # ===================================================
     # ALL QUIZZES
@@ -132,111 +219,42 @@ def student_panel():
         subjects = get_all_subjects()
 
         if not subjects:
-            st.warning("No quizzes available.")
+            st.warning("No quizzes available")
             return
 
         for sub in subjects:
 
-            col1, col2 = st.columns([3,1])
+            col1, col2 = st.columns([3, 1])
 
             col1.write(sub)
 
             if col2.button("Start", key=sub):
 
                 st.session_state.exam_subject = sub
-                st.session_state.show_rules = True
+                st.session_state.exam_active = True
                 st.rerun()
 
-
     # ===================================================
-    # RECOMMENDED QUIZZES
-    # ===================================================
-
-    elif choice == "Recommended Quizzes":
-
-        st.subheader("💡 Recommended Quizzes")
-
-        weak = detect_weak_subjects(all_results, student_id)
-
-        if not weak:
-
-            st.success("No weak subjects detected!")
-
-            subjects = get_all_subjects()
-
-            for s in subjects[:3]:
-
-                if st.button(f"Practice {s}"):
-
-                    st.session_state.exam_subject = s
-                    st.session_state.show_rules = True
-                    st.rerun()
-
-        else:
-
-            st.warning("You should practice these subjects:")
-
-            for w in weak:
-
-                if st.button(f"Practice {w}"):
-
-                    st.session_state.exam_subject = w
-                    st.session_state.show_rules = True
-                    st.rerun()
-
-
-    # ===================================================
-    # START EXAM
+    # START EXAM (FIXED BUG)
     # ===================================================
 
     elif choice == "Start Exam":
 
+        st.subheader("📝 Start Exam")
+
         subjects = get_all_subjects()
+
+        if not subjects:
+            st.warning("No exams available")
+            return
 
         subject = st.selectbox("Select Subject", subjects)
 
-        attempts = get_attempts(student_id, subject)
-
-        st.info(f"Attempts used: {attempts}/3")
-
-        if attempts >= 3:
-
-            st.error("Maximum attempts reached")
-            return
-
-        if st.button("Continue ➜"):
+        if st.button("Start Exam"):
 
             st.session_state.exam_subject = subject
-            st.session_state.show_rules = True
-
-            st.rerun()
-
-        if st.session_state.get("show_rules", False):
-
-            show_exam_rules(student_id, subject)
-
-
-    # ===================================================
-    # CODING PRACTICE
-    # ===================================================
-
-    elif choice == "Coding Practice":
-
-        st.subheader("💻 Coding Practice")
-
-        subjects = get_all_subjects()
-
-        subject = st.selectbox("Choose Subject", subjects)
-
-        st.info("Practice coding questions without timer.")
-
-        if st.button("Start Practice"):
-
-            st.session_state.exam_subject = subject
-            st.session_state.practice_mode = True
             st.session_state.exam_active = True
             st.rerun()
-
 
     # ===================================================
     # LEADERBOARD
@@ -249,15 +267,12 @@ def student_panel():
         scores = []
 
         for r in all_results:
-
             scores.append((r[0], float(r[4])))
 
         scores.sort(key=lambda x: x[1], reverse=True)
 
         for i, s in enumerate(scores[:10]):
-
             st.write(f"{i+1}. {s[0]} — {s[1]}%")
-
 
     # ===================================================
     # VIEW RESULT
@@ -279,29 +294,7 @@ def student_panel():
             st.write(f"Grade: **{grade}**")
 
         else:
-            st.warning("No result found.")
-
-
-    # ===================================================
-    # EXAM HISTORY
-    # ===================================================
-
-    elif choice == "Exam History":
-
-        history = [r for r in all_results if r[0] == student_id]
-
-        if not history:
-            st.warning("No history found")
-            return
-
-        st.subheader("📜 Exam History")
-
-        for r in history:
-
-            st.write(
-                f"{r[1]} — Score {r[2]}/{r[3]} | {r[4]}% | Grade {r[5]}"
-            )
-
+            st.info("No results available yet.")
 
     # ===================================================
     # PERFORMANCE ANALYTICS
@@ -315,8 +308,6 @@ def student_panel():
 
         st.subheader("📈 Performance Analytics")
 
-        st.write("Average Score:", summary.get("average_score",0), "%")
-
         weak = detect_weak_subjects(all_results, student_id)
 
         if weak:
@@ -326,13 +317,10 @@ def student_panel():
             for w in weak:
                 st.warning(w)
 
-        st.subheader("💡 Recommendations")
-
         rec = generate_recommendations(all_results, student_id)
 
         for r in rec:
             st.info(r)
-
 
     # ===================================================
     # CHANGE PASSWORD
@@ -343,34 +331,8 @@ def student_panel():
         change_password_flow(student_id)
 
 
-
 # ===================================================
-# EXAM RULES
-# ===================================================
-
-def show_exam_rules(student_id, subject):
-
-    st.subheader("📘 Exam Rules")
-
-    st.markdown("""
-✔ Each question has **20 second timer**  
-✔ Questions appear in **random order**  
-✔ **Tab switching detected**  
-✔ **Max 3 attempts per subject**
-""")
-
-    if st.button("I Agree & Start Exam 🚀"):
-
-        st.session_state.show_rules = False
-        st.session_state.exam_active = True
-        st.session_state.exam_subject = subject
-
-        st.rerun()
-
-
-
-# ===================================================
-# CHANGE PASSWORD
+# PASSWORD CHANGE
 # ===================================================
 
 def change_password_flow(student_id):
@@ -378,6 +340,10 @@ def change_password_flow(student_id):
     st.subheader("🔒 Change Password")
 
     user = get_user_by_roll(student_id)
+
+    if not user:
+        st.error("User not found")
+        return
 
     email = user["email"]
 
@@ -413,8 +379,10 @@ def change_password_flow(student_id):
 
         if st.button("Update Password"):
 
-            if newp == conf:
+            if newp != conf:
+                st.error("Passwords do not match")
+                return
 
-                update_user(student_id, password=newp)
+            update_user(student_id, password=newp)
 
-                st.success("Password Updated")
+            st.success("Password Updated")

@@ -1,5 +1,5 @@
 # ============================================================
-# FILE: exam.py (UPDATED FINAL VERSION)
+# FILE: exam.py (FIXED STABLE VERSION - CLEAN INDENTED)
 # ============================================================
 
 import streamlit as st
@@ -13,6 +13,7 @@ from database import get_all_questions, increase_attempt
 from results import save_result, show_result
 from code_runner.executor import run_python_code
 from monitoring.proctoring import analyze_frame
+from anti_cheat.ai_detector import cheating_risk
 
 st.set_page_config(layout="wide")
 
@@ -32,7 +33,6 @@ font-weight:bold;
 </style>
 """, unsafe_allow_html=True)
 
-
 # ============================================================
 # SESSION STATE
 # ============================================================
@@ -40,108 +40,49 @@ font-weight:bold;
 def init_state():
 
     defaults = {
-        "step":"fullscreen",
-        "index":0,
-        "score":0,
-        "questions":[],
-        "answers":{}
+        "step": "fullscreen",
+        "index": 0,
+        "score": 0,
+        "questions": [],
+        "answers": {},
+        "tab_switches": 0,
+        "skips": 0,
+        "fast_answers": 0
     }
 
-    for k,v in defaults.items():
+    for k, v in defaults.items():
         if k not in st.session_state:
-            st.session_state[k]=v
+            st.session_state[k] = v
 
 
 # ============================================================
 # SECURITY SCRIPT
 # ============================================================
+
 def security_script():
 
     components.html("""
-    <script>
+<script>
 
-    if(!window.examSecurityLoaded){
+if(!window.examSecurityLoaded){
 
-        window.examSecurityLoaded = true;
+    window.examSecurityLoaded = true;
 
-        const parentWindow = window.parent;
-        const parentDoc = parentWindow.document;
+    const parentDoc = window.parent.document;
 
-        let overlay = null;
-        let countdownTimer = null;
+    parentDoc.addEventListener("visibilitychange", function(){
 
-        function showWarning(){
-
-            if(overlay) return;
-
-            let t = 15;
-
-            overlay = parentDoc.createElement("div");
-
-            overlay.style.position="fixed";
-            overlay.style.top="0";
-            overlay.style.left="0";
-            overlay.style.width="100%";
-            overlay.style.height="100%";
-            overlay.style.background="rgba(0,0,0,0.9)";
-            overlay.style.display="flex";
-            overlay.style.flexDirection="column";
-            overlay.style.alignItems="center";
-            overlay.style.justifyContent="center";
-            overlay.style.color="white";
-            overlay.style.fontSize="50px";
-            overlay.style.zIndex="999999";
-
-            const text = parentDoc.createElement("div");
-
-            const btn = parentDoc.createElement("button");
-            btn.innerText="Cancel";
-            btn.style.marginTop="20px";
-            btn.style.padding="15px";
-            btn.style.fontSize="20px";
-
-            btn.onclick=function(){
-                clearInterval(countdownTimer);
-                overlay.remove();
-                overlay=null;
-            };
-
-            overlay.appendChild(text);
-            overlay.appendChild(btn);
-
-            parentDoc.body.appendChild(overlay);
-
-            countdownTimer = setInterval(function(){
-
-                text.innerHTML="Tab switch detected! Return in "+t+" sec";
-
-                t--;
-
-                if(t<0){
-
-                    clearInterval(countdownTimer);
-
-                    alert("Exam terminated due to tab switching");
-
-                    parentWindow.location.reload();
-                }
-
-            },1000);
+        if(parentDoc.hidden){
+            alert("Tab switching detected!");
         }
 
-        // REAL TAB SWITCH DETECTION
-        parentDoc.addEventListener("visibilitychange", function(){
+    });
 
-            if(parentDoc.hidden){
-                showWarning();
-            }
+}
 
-        });
+</script>
+""", height=0)
 
-    }
-
-    </script>
-    """, height=0)
 
 # ============================================================
 # FULLSCREEN STEP
@@ -180,7 +121,7 @@ def fullscreen_step():
     )
 
     if st.button("Proceed to Camera"):
-        st.session_state.step="camera"
+        st.session_state.step = "camera"
         st.rerun()
 
 
@@ -192,14 +133,14 @@ def camera_step():
 
     st.title("Camera Verification")
 
-    cam=st.camera_input("Capture your face")
+    cam = st.camera_input("Capture your face")
 
     if cam:
 
-        img=Image.open(cam)
-        img=np.array(img)
+        img = Image.open(cam)
+        img = np.array(img)
 
-        result=analyze_frame(img)
+        result = analyze_frame(img)
 
         if result["warning"]:
             st.error(result["warning"])
@@ -208,8 +149,8 @@ def camera_step():
 
             st.success("Face verified successfully")
 
-            if st.button("Proceed to Exam"):
-                st.session_state.step="exam"
+            if st.button("Start Exam"):
+                st.session_state.step = "exam"
                 st.rerun()
 
 
@@ -219,248 +160,271 @@ def camera_step():
 
 def prepare_questions(subject):
 
-    qs=get_all_questions()
+    qs = get_all_questions()
 
-    mcq=[q for q in qs if q[0]==subject and q[3]=="mcq"]
-    code=[q for q in qs if q[0]==subject and q[3]=="code"]
+    mcq = [q for q in qs if q[0] == subject and q[3] == "mcq"]
+    code = [q for q in qs if q[0] == subject and q[3] == "code"]
 
     random.shuffle(mcq)
     random.shuffle(code)
 
-    return mcq[:10]+code[:5]
+    return mcq[:10] + code[:5]
 
 
 # ============================================================
 # TIMER
 # ============================================================
-def js_timer(limit,qid):
+
+def js_timer(limit, qid):
 
     components.html(f"""
-    <div id="timer"
-    style="
-    font-size:40px;
-    color:red;
-    font-weight:bold;
-    position:fixed;
-    top:10px;
-    left:50%;
-    transform:translateX(-50%);
-    z-index:9999;">
-    </div>
+<div id="timer"
+style="
+font-size:40px;
+color:red;
+font-weight:bold;
+position:fixed;
+top:10px;
+left:50%;
+transform:translateX(-50%);
+z-index:9999;">
+</div>
 
-    <script>
+<script>
 
-    // Reset timer for new question
-    if(window.currentQuestion !== "{qid}"){{
+if(window.currentQuestion !== "{qid}"){{
 
-        window.currentQuestion = "{qid}";
+    window.currentQuestion = "{qid}";
 
-        if(window.examTimer){{
+    if(window.examTimer){{
+        clearInterval(window.examTimer);
+    }}
+
+    let t = {limit};
+
+    const timerBox = document.getElementById("timer");
+
+    function updateTimer(){{
+
+        timerBox.innerHTML = "Time Left: " + t + " sec";
+
+        t--;
+
+        if(t < 0){{
+
             clearInterval(window.examTimer);
+
+            const buttons = window.parent.document.querySelectorAll("button");
+
+            buttons.forEach(btn=>{{
+                if(btn.innerText==="Skip"){{
+                    btn.click();
+                }}
+            }});
+
         }}
-
-        let t = {limit};
-
-        const timerBox = document.getElementById("timer");
-
-        function updateTimer(){{
-
-            timerBox.innerHTML = "Time Left: " + t + " sec";
-
-            t--;
-
-            if(t < 0){{
-
-                clearInterval(window.examTimer);
-
-                const popup = document.createElement("div");
-
-                popup.style.position="fixed";
-                popup.style.bottom="20px";
-                popup.style.right="20px";
-                popup.style.background="orange";
-                popup.style.padding="15px";
-                popup.style.fontSize="18px";
-                popup.style.borderRadius="10px";
-                popup.style.zIndex="999999";
-
-                popup.innerHTML="Time up for this question";
-
-                document.body.appendChild(popup);
-
-                setTimeout(()=>{{
-
-                    popup.remove();
-
-                    const buttons = window.parent.document.querySelectorAll("button");
-
-                    buttons.forEach(btn=>{{
-                        if(btn.innerText==="Skip"){{
-                            btn.click();
-                        }}
-                    }});
-
-                }},1500);
-
-            }}
-        }}
-
-        updateTimer();
-
-        window.examTimer = setInterval(updateTimer,1000);
 
     }}
 
-    </script>
-    """, height=90)
+    updateTimer();
+
+    window.examTimer = setInterval(updateTimer,1000);
+
+}}
+
+</script>
+""", height=80)
+
 
 # ============================================================
 # EXAM STEP
 # ============================================================
 
-def exam_step(student_id,subject):
+def exam_step(student_id, subject):
 
     security_script()
 
     if not st.session_state.questions:
-        st.session_state.questions=prepare_questions(subject)
 
-    qs=st.session_state.questions
-    i=st.session_state.index
+        st.session_state.questions = prepare_questions(subject)
 
-    if i>=len(qs):
-        finalize_exam(student_id,subject)
+        if not st.session_state.questions:
+            st.error("No quiz available for this subject.")
+            return
+
+    qs = st.session_state.questions
+    i = st.session_state.index
+
+    if i >= len(qs):
+        finalize_exam(student_id, subject)
         return
 
-    q=qs[i]
+    q = qs[i]
 
-    st.progress((i+1)/len(qs))
+    st.progress((i + 1) / len(qs))
 
-    limit=20 if q[3]=="mcq" else 180
-    js_timer(limit,i)
+    limit = 20 if q[3] == "mcq" else 180
+
+    js_timer(limit, f"{i}-{q[4]}")
 
     st.markdown(f"### Question {i+1}")
     st.write(q[4])
 
-# ============================================================
-# MCQ
-# ============================================================
+    # ============================================================
+    # MCQ
+    # ============================================================
 
-    if q[3]=="mcq":
+    if q[3] == "mcq":
 
-        options={
-            "A":q[5],
-            "B":q[6],
-            "C":q[7],
-            "D":q[8]
+        options = {
+            "A": q[5],
+            "B": q[6],
+            "C": q[7],
+            "D": q[8]
         }
 
-        selected=st.radio(
+        selected = st.radio(
             "Choose Answer",
-            [f"{k}) {v}" for k,v in options.items()],
+            [f"{k}) {v}" for k, v in options.items()],
             key=f"mcq{i}"
         )
 
-        col1,col2,col3=st.columns(3)
+        col1, col2, col3 = st.columns(3)
 
         if col1.button("Previous"):
 
-            if i>0:
-                st.session_state.index-=1
+            if i > 0:
+                st.session_state.index -= 1
                 st.rerun()
 
         if col2.button("Skip"):
 
-            st.session_state.index+=1
+            st.session_state.skips += 1
+            st.session_state.index += 1
             st.rerun()
 
         if col3.button("Submit"):
 
-            st.session_state.answers[i]=selected.split(")")[0]
+            ans = selected.split(")")[0]
 
-            if selected.split(")")[0]==q[9]:
-                st.session_state.score+=1
+            st.session_state.answers[i] = ans
 
-            st.session_state.index+=1
+            if ans == q[9]:
+                st.session_state.score += 1
+
+            st.session_state.index += 1
             st.rerun()
 
+    # ============================================================
+    # CODING
+    # ============================================================
 
-# ============================================================
-# CODING
-# ============================================================
+    elif q[3] == "code":
 
-    elif q[3]=="code":
-
+        st.write("Expected Output:")
         st.code(q[6])
 
-        code=st_ace(language="python",height=300)
+        code = st_ace(language="python", height=300)
 
         if st.button("Run Code"):
 
-            output=run_python_code(code)
+            output = run_python_code(code)
             st.code(output)
 
-        col1,col2,col3=st.columns(3)
+        col1, col2, col3 = st.columns(3)
 
         if col1.button("Previous"):
 
-            if i>0:
-                st.session_state.index-=1
+            if i > 0:
+                st.session_state.index -= 1
                 st.rerun()
 
         if col2.button("Skip"):
 
-            st.session_state.index+=1
+            st.session_state.skips += 1
+            st.session_state.index += 1
             st.rerun()
 
         if col3.button("Submit Code"):
 
-            result=run_python_code(code)
+            result = run_python_code(code)
 
-            if result.strip()==q[6].strip():
-                st.session_state.score+=1
+            if result.strip() == q[6].strip():
+                st.session_state.score += 1
 
-            st.session_state.index+=1
+            st.session_state.index += 1
             st.rerun()
+
+    # ============================================================
+    # RISK SCORE
+    # ============================================================
+
+    risk = cheating_risk(
+        st.session_state.tab_switches,
+        st.session_state.fast_answers,
+        st.session_state.skips
+    )
+
+    st.sidebar.metric("Risk Score", risk["risk_score"])
+    st.sidebar.write("Risk Level:", risk["risk_level"])
 
 
 # ============================================================
 # RESULT
 # ============================================================
 
-def finalize_exam(student_id,subject):
+def finalize_exam(student_id, subject):
 
-    score=st.session_state.score
-    total=len(st.session_state.questions)
+    score = st.session_state.score
+    total = len(st.session_state.questions)
 
-    percent=(score/total)*100
+    percent = (score / total) * 100
 
-    save_result(student_id,subject,score,total,percent,"Completed")
-    increase_attempt(student_id,subject)
+    save_result(student_id, subject, score, total, percent, "Completed")
+    increase_attempt(student_id, subject)
 
     st.success("Exam Completed")
 
-    st.write("Score:",score,"/",total)
-    st.write("Percentage:",percent)
+    st.write("Score:", score, "/", total)
+    st.write("Percentage:", percent)
 
     show_result(student_id)
+
+    st.divider()
+
+    if st.button("🏠 Go to Dashboard"):
+
+        keys = [
+            "step",
+            "index",
+            "score",
+            "questions",
+            "answers",
+            "exam_active"
+        ]
+
+        for k in keys:
+            if k in st.session_state:
+                del st.session_state[k]
+
+        st.rerun()
 
 
 # ============================================================
 # ENTRY
 # ============================================================
 
-def start_exam(student_id,subject):
+def start_exam(student_id, subject):
 
     init_state()
 
-    step=st.session_state.step
+    step = st.session_state.step
 
-    if step=="fullscreen":
+    if step == "fullscreen":
         fullscreen_step()
 
-    elif step=="camera":
+    elif step == "camera":
         camera_step()
 
-    elif step=="exam":
-        exam_step(student_id,subject)
+    elif step == "exam":
+        exam_step(student_id, subject)

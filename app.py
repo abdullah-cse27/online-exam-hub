@@ -12,6 +12,7 @@ from student import student_panel
 # =========================================================
 # PAGE CONFIG
 # =========================================================
+
 st.set_page_config(
     page_title="Online Examination System",
     page_icon="🧠",
@@ -22,24 +23,25 @@ st.set_page_config(
 # =========================================================
 # SESSION STATE INITIALIZATION
 # =========================================================
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-    st.session_state.role = None
-    st.session_state.userid = None
 
-if "page" not in st.session_state:
-    st.session_state.page = "Login"
+defaults = {
+    "logged_in": False,
+    "role": None,
+    "userid": None,
+    "page": "Login",
+    "theme": "Light Mode",
+    "last_activity": time.time()
+}
 
-if "theme" not in st.session_state:
-    st.session_state.theme = "Light Mode"
-
-if "last_activity" not in st.session_state:
-    st.session_state.last_activity = time.time()
+for key, value in defaults.items():
+    if key not in st.session_state:
+        st.session_state[key] = value
 
 
 # =========================================================
 # AUTO LOGOUT (30 min inactivity)
 # =========================================================
+
 if st.session_state.logged_in:
 
     now = time.time()
@@ -61,6 +63,7 @@ if st.session_state.logged_in:
 # =========================================================
 # THEME SWITCH
 # =========================================================
+
 theme_choice = st.sidebar.radio(
     "🎨 Theme",
     ["Light Mode", "Dark Mode"]
@@ -72,6 +75,7 @@ st.session_state.theme = theme_choice
 # =========================================================
 # LIGHT MODE CSS
 # =========================================================
+
 if st.session_state.theme == "Light Mode":
 
     st.markdown("""
@@ -108,6 +112,7 @@ if st.session_state.theme == "Light Mode":
 # =========================================================
 # DARK MODE CSS
 # =========================================================
+
 else:
 
     st.markdown("""
@@ -144,6 +149,7 @@ else:
 # =========================================================
 # MAIN TITLE
 # =========================================================
+
 st.markdown(
     "<p class='big-title'>🧠 Online Examination System</p>",
     unsafe_allow_html=True
@@ -153,6 +159,7 @@ st.markdown(
 # =========================================================
 # SIDEBAR USER INFO
 # =========================================================
+
 if st.session_state.logged_in:
 
     st.sidebar.success(
@@ -161,10 +168,8 @@ if st.session_state.logged_in:
 
     if st.sidebar.button("Logout"):
 
-        st.session_state.logged_in = False
-        st.session_state.role = None
-        st.session_state.userid = None
-        st.session_state.page = "Login"
+        for k in list(st.session_state.keys()):
+            del st.session_state[k]
 
         st.rerun()
 
@@ -172,17 +177,25 @@ if st.session_state.logged_in:
 # =========================================================
 # NAVIGATION
 # =========================================================
+
+
 menu = ["Login", "Admin Panel", "Student Panel"]
 
-try:
-    selected_index = menu.index(st.session_state.page)
-except ValueError:
-    selected_index = 0
+if st.session_state.logged_in:
+
+    if st.session_state.role == "admin":
+        default_page = "Admin Panel"
+    else:
+        default_page = "Student Panel"
+
+else:
+    default_page = "Login"
+
 
 choice = st.sidebar.radio(
     "Navigation",
     menu,
-    index=selected_index
+    index=menu.index(default_page)
 )
 
 st.session_state.page = choice
@@ -192,13 +205,11 @@ st.session_state.page = choice
 # PAGE ROUTING
 # =========================================================
 
-# LOGIN PAGE
 if choice == "Login":
 
     login_user()
 
 
-# ADMIN PANEL
 elif choice == "Admin Panel":
 
     if st.session_state.logged_in and st.session_state.role == "admin":
@@ -210,7 +221,6 @@ elif choice == "Admin Panel":
         st.warning("Please login as Admin!")
 
 
-# STUDENT PANEL
 elif choice == "Student Panel":
 
     if st.session_state.logged_in and st.session_state.role == "student":
@@ -225,6 +235,7 @@ elif choice == "Student Panel":
 # =========================================================
 # FOOTER
 # =========================================================
+
 st.markdown(
 """
 <hr>

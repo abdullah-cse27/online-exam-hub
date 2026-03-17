@@ -1,0 +1,3 @@
+python|loops|Python loops are used to repeat a block of code.|animation_loop|What loop prints numbers 1-5?|for loop
+python|functions|Functions allow reusable code blocks.|animation_function|What keyword defines function?|def
+c|loops|Loops in C allow repeated execution.|animation_c_loop|Which loop checks condition first?|while
