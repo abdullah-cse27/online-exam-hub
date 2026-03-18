@@ -86,37 +86,24 @@ def live_monitor():
 
     st.markdown("""
     <style>
-    .camera-container{
+    .hidden-cam{
         position:fixed;
-        bottom:20px;
-        left:20px;
-        width:220px;
-        height:160px;
-        z-index:9999;
-        border-radius:10px;
-        overflow:hidden;
-        box-shadow:0px 0px 10px black;
+        left:-9999px;
+        top:-9999px;
+        width:1px;
+        height:1px;
+        opacity:0;
     }
     </style>
     """, unsafe_allow_html=True)
 
-    st.markdown('<div class="camera-container">', unsafe_allow_html=True)
+    st.markdown('<div class="hidden-cam">', unsafe_allow_html=True)
 
     webrtc_streamer(
-
         key="exam-monitor",
-
         video_processor_factory=ProctorProcessor,
-
         desired_playing_state=True,
-
-        rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
-
-        media_stream_constraints={
-            "video": True,
-            "audio": False
-        }
-
+        media_stream_constraints={"video": True, "audio": False}
     )
 
     st.markdown('</div>', unsafe_allow_html=True)
@@ -457,13 +444,7 @@ def exam_step(student_id, subject):
     with right:
 
         if st.session_state.camera_started:
-
-            webrtc_streamer(
-                key="exam-monitor",
-                video_processor_factory=ProctorProcessor,
-                desired_playing_state=True,
-                media_stream_constraints={"video": True,"audio": False}
-            )
+            live_monitor()
 
             st.metric("⚠ Cheating Risk", round(st.session_state.cheat_risk,2))
             st.metric("👤 Faces", st.session_state.faces_detected)

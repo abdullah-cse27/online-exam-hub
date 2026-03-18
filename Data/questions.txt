@@ -39,7 +39,6 @@ Python|Conditions|Medium|mcq|Which keyword checks condition?|if|loop|test|cond|A
 Python|Syntax|Medium|mcq|Python uses indentation for?|loops|conditions|blocks|all|D
 
 Python|loops|Easy|code|Write Python code to print numbers from 1 to 5 each on a new line.|-
-
 1
 2
 3
@@ -51,7 +50,6 @@ Python|loops|Easy|code|Write Python code to print numbers from 1 to 5 each on a 
 5
 
 Python|strings|Easy|code|Write Python code to print the length of the word Python.|-
-
 6
 
 ---
@@ -59,7 +57,6 @@ Python|strings|Easy|code|Write Python code to print the length of the word Pytho
 Python
 
 Python|math|Easy|code|Write Python code to print the result of 7 multiplied by 6.|-
-
 42
 
 ---
@@ -67,7 +64,6 @@ Python|math|Easy|code|Write Python code to print the result of 7 multiplied by 6
 7 6
 
 Python|loops|Medium|code|Write Python code to print numbers from 1 to 3 using a loop.|-
-
 1
 2
 3
@@ -77,7 +73,6 @@ Python|loops|Medium|code|Write Python code to print numbers from 1 to 3 using a 
 3
 
 Python|strings|Easy|code|Write Python code to print the word Hello.|-
-
 Hello
 
 ---
