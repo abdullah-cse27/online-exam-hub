@@ -1,24 +1,46 @@
 # ===================================================
-# FILE: anti_cheat/ai_detector.py
+# FILE: anti_cheat/ai_detector.py (AI CHEATING ANALYZER)
 # ===================================================
 
-def cheating_risk(
-    tab_switches=0,
-    fast_answers=0,
-    skips=0,
-    camera_warnings=0,
-    suspicious_motion=0,
-    exam_duration=None,
-    expected_duration=None
-):
+def cheating_risk(data=None,
+                  tab_switches=0,
+                  fast_answers=0,
+                  skips=0,
+                  camera_warnings=0,
+                  suspicious_motion=0,
+                  exam_duration=None,
+                  expected_duration=None):
 
     """
-    Advanced cheating risk analysis.
+    Hybrid cheating risk analysis
+    Supports:
+    - AI proctoring data
+    - Exam behaviour analytics
     """
 
-    # ================================
-    # SAFETY NORMALIZATION
-    # ================================
+    # ===================================================
+    # SAFE DATA EXTRACTION
+    # ===================================================
+
+    if isinstance(data, dict):
+
+        faces = data.get("faces", 0)
+        looking = data.get("looking", True)
+        motion = data.get("motion", False)
+        objects = data.get("objects", [])
+        low_light = data.get("low_light", False)
+
+    else:
+        faces = 0
+        looking = True
+        motion = False
+        objects = []
+        low_light = False
+
+
+    # ===================================================
+    # NORMALIZE VALUES
+    # ===================================================
 
     tab_switches = int(tab_switches or 0)
     fast_answers = int(fast_answers or 0)
@@ -27,11 +49,50 @@ def cheating_risk(
     suspicious_motion = int(suspicious_motion or 0)
 
     risk_score = 0
+    warning = ""
 
 
-    # ================================
+    # ===================================================
+    # CAMERA ANALYSIS
+    # ===================================================
+
+    if faces == 0:
+        risk_score += 40
+        warning = "⚠ Face not visible"
+
+    elif faces > 1:
+        risk_score += 60
+        warning = "⚠ Multiple faces detected"
+
+
+    if not looking:
+        risk_score += 20
+        warning = "⚠ Look at the screen"
+
+
+    if motion:
+        risk_score += 15
+
+
+    if low_light:
+        risk_score += 10
+        warning = "⚠ Low lighting"
+
+
+    if len(objects) > 0:
+
+        if "cell phone" in objects:
+            risk_score += 50
+            warning = "⚠ Phone detected"
+
+        else:
+            risk_score += 40
+            warning = f"⚠ Suspicious object: {objects[0]}"
+
+
+    # ===================================================
     # TAB SWITCHING
-    # ================================
+    # ===================================================
 
     if tab_switches > 0:
         risk_score += tab_switches * 12
@@ -40,9 +101,9 @@ def cheating_risk(
         risk_score += 15
 
 
-    # ================================
+    # ===================================================
     # FAST ANSWERS
-    # ================================
+    # ===================================================
 
     if fast_answers > 2:
         risk_score += fast_answers * 6
@@ -51,9 +112,9 @@ def cheating_risk(
         risk_score += 10
 
 
-    # ================================
+    # ===================================================
     # SKIP PATTERN
-    # ================================
+    # ===================================================
 
     if skips > 2:
         risk_score += skips * 4
@@ -62,25 +123,25 @@ def cheating_risk(
         risk_score += 10
 
 
-    # ================================
+    # ===================================================
     # CAMERA WARNINGS
-    # ================================
+    # ===================================================
 
     if camera_warnings > 0:
         risk_score += camera_warnings * 10
 
 
-    # ================================
+    # ===================================================
     # SUSPICIOUS MOTION
-    # ================================
+    # ===================================================
 
     if suspicious_motion > 0:
         risk_score += suspicious_motion * 8
 
 
-    # ================================
+    # ===================================================
     # EXAM TIME ANALYSIS
-    # ================================
+    # ===================================================
 
     if exam_duration and expected_duration:
 
@@ -88,9 +149,9 @@ def cheating_risk(
             risk_score += 15
 
 
-    # ================================
+    # ===================================================
     # BEHAVIOUR COMBINATIONS
-    # ================================
+    # ===================================================
 
     if tab_switches > 2 and fast_answers > 3:
         risk_score += 15
@@ -102,16 +163,16 @@ def cheating_risk(
         risk_score += 8
 
 
-    # ================================
-    # SCORE LIMIT
-    # ================================
+    # ===================================================
+    # LIMIT SCORE
+    # ===================================================
 
     risk_score = min(risk_score, 100)
 
 
-    # ================================
+    # ===================================================
     # RISK LEVEL
-    # ================================
+    # ===================================================
 
     if risk_score >= 70:
         level = "HIGH"
@@ -123,16 +184,15 @@ def cheating_risk(
         level = "LOW"
 
 
-    # ================================
+    # ===================================================
     # RETURN RESULT
-    # ================================
+    # ===================================================
 
-    return {
+    result = {
         "risk_score": risk_score,
         "risk_level": level,
-        "tab_switches": tab_switches,
-        "fast_answers": fast_answers,
-        "skips": skips,
-        "camera_warnings": camera_warnings,
-        "suspicious_motion": suspicious_motion
+        "warning": warning,
+        "faces": faces
     }
+
+    return result

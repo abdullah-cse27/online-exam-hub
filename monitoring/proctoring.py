@@ -1,20 +1,24 @@
 # ============================================================
-# FILE: monitoring/proctoring.py (AI PROCTORING ENGINE)
+# FILE: monitoring/proctoring.py (STABLE AI PROCTORING ENGINE)
 # ============================================================
 
 import cv2
 import numpy as np
 from PIL import Image
+from ultralytics import YOLO
 
 # ============================================================
-# LOAD FACE DETECTOR
+# LOAD MODELS
 # ============================================================
 
 face_cascade = cv2.CascadeClassifier(
     cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
 )
 
+yolo_model = YOLO("yolov8n.pt")
+
 previous_frame = None
+frame_counter = 0
 
 
 # ============================================================
@@ -28,28 +32,42 @@ def normalize_image(image):
 
     image = np.array(image)
 
-    if len(image.shape) == 3:
-        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+    # ensure correct type
+    if image.dtype != np.uint8:
+        image = image.astype(np.uint8)
 
     return image
 
 
 # ============================================================
-# FACE DETECTION
+# FACE DETECTION (IMPROVED)
 # ============================================================
 
 def detect_faces(image):
 
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
+    gray = cv2.equalizeHist(gray)
+
+    small = cv2.resize(gray, (0,0), fx=0.75, fy=0.75)
+
     faces = face_cascade.detectMultiScale(
-        gray,
-        scaleFactor=1.3,
+        small,
+        scaleFactor=1.1,
         minNeighbors=5,
-        minSize=(30, 30)
+        minSize=(40,40)
     )
 
-    return faces
+    faces_rescaled = []
+    for (x,y,w,h) in faces:
+        faces_rescaled.append((
+            int(x/0.75),
+            int(y/0.75),
+            int(w/0.75),
+            int(h/0.75)
+        ))
+
+    return faces_rescaled
 
 
 # ============================================================
@@ -61,7 +79,7 @@ def detect_motion(frame):
     global previous_frame
 
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    gray = cv2.GaussianBlur(gray, (21, 21), 0)
+    gray = cv2.GaussianBlur(gray, (21,21),0)
 
     if previous_frame is None:
         previous_frame = gray
@@ -69,16 +87,13 @@ def detect_motion(frame):
 
     diff = cv2.absdiff(previous_frame, gray)
 
-    thresh = cv2.threshold(diff, 25, 255, cv2.THRESH_BINARY)[1]
+    thresh = cv2.threshold(diff,25,255,cv2.THRESH_BINARY)[1]
 
-    motion_score = np.sum(thresh) / 255
+    motion_score = np.sum(thresh)/255
 
     previous_frame = gray
 
-    if motion_score > 40000:
-        return True
-
-    return False
+    return motion_score > 12000
 
 
 # ============================================================
@@ -91,33 +106,57 @@ def detect_low_light(frame):
 
     brightness = np.mean(gray)
 
-    if brightness < 40:
-        return True
-
-    return False
+    return brightness < 40
 
 
 # ============================================================
-# OBJECT DETECTION (placeholder)
+# YOLO OBJECT DETECTION (THROTTLED)
 # ============================================================
 
 def detect_objects(frame):
 
-    """
-    Future Expansion:
-    - phone detection
-    - book detection
-    - second person detection
-    """
+    objects = []
 
-    return []
+    small = cv2.resize(frame,(640,480))
+    results = yolo_model(small, verbose=False)
+
+    for r in results:
+
+        for box in r.boxes:
+
+            cls = int(box.cls)
+            label = yolo_model.names[cls]
+
+            if label in ["cell phone","book","laptop"]:
+                objects.append(label)
+
+    return objects
+
+
+# ============================================================
+# LOOKING DETECTION
+# ============================================================
+
+def detect_looking(faces, frame_width):
+
+    if len(faces) == 0:
+        return True
+
+    x,y,w,h = faces[0]
+
+    center = x + w/2
+
+    if center < frame_width*0.35 or center > frame_width*0.65:
+        return False
+
+    return True
 
 
 # ============================================================
 # RISK SCORE
 # ============================================================
 
-def calculate_risk(face_count, motion, low_light, objects):
+def calculate_risk(face_count,motion,low_light,objects,looking):
 
     score = 0
 
@@ -127,35 +166,19 @@ def calculate_risk(face_count, motion, low_light, objects):
     elif face_count > 1:
         score += 60
 
-    if motion:
+    if not looking:
         score += 20
 
-    if low_light:
+    if motion:
         score += 15
+
+    if low_light:
+        score += 10
 
     if len(objects) > 0:
         score += 40
 
-    if score > 100:
-        score = 100
-
-    return score
-
-
-# ============================================================
-# RISK LEVEL
-# ============================================================
-
-def risk_level(score):
-
-    if score >= 70:
-        return "HIGH"
-
-    elif score >= 40:
-        return "MEDIUM"
-
-    else:
-        return "LOW"
+    return min(score,100)
 
 
 # ============================================================
@@ -164,50 +187,87 @@ def risk_level(score):
 
 def analyze_frame(image):
 
-    frame = normalize_image(image)
+    global frame_counter
 
-    faces = detect_faces(frame)
+    try:
 
-    motion = detect_motion(frame)
+        frame = normalize_image(image)
 
-    low_light = detect_low_light(frame)
+        faces = detect_faces(frame)
 
-    objects = detect_objects(frame)
+        motion = detect_motion(frame)
 
-    risk = calculate_risk(len(faces), motion, low_light, objects)
+        low_light = detect_low_light(frame)
 
-    level = risk_level(risk)
+        frame_counter += 1
 
-    result = {
+        objects = []
 
-        "face_count": len(faces),
-        "motion_detected": motion,
-        "low_light": low_light,
-        "objects": objects,
+        if frame_counter % 45 == 0:
+            objects = detect_objects(frame)
 
-        "risk_score": risk,
-        "risk_level": level,
+        looking = detect_looking(faces, frame.shape[1])
 
-        "warning": None
-    }
+        risk = calculate_risk(
+            len(faces),
+            motion,
+            low_light,
+            objects,
+            looking
+        )
 
-    # ====================================
-    # WARNINGS
-    # ====================================
+        warning = ""
 
-    if len(faces) == 0:
-        result["warning"] = "⚠ No face detected"
+        if len(faces) == 0:
+            warning = "⚠ Face not visible"
 
-    elif len(faces) > 1:
-        result["warning"] = "⚠ Multiple faces detected"
+        elif len(faces) > 1:
+            warning = "⚠ Multiple faces detected"
 
-    elif low_light:
-        result["warning"] = "⚠ Lighting too low"
+        elif not looking:
+            warning = "⚠ Look at the screen"
 
-    elif motion:
-        result["warning"] = "⚠ Suspicious movement detected"
+        elif low_light:
+            warning = "⚠ Lighting too low"
 
-    elif len(objects) > 0:
-        result["warning"] = "⚠ Suspicious object detected"
+        elif motion:
+            warning = "⚠ Suspicious movement detected"
 
-    return result
+        elif len(objects) > 0:
+            warning = f"⚠ Object detected: {objects[0]}"
+
+
+        # draw face boxes
+        for (x,y,w,h) in faces:
+
+            cv2.rectangle(
+                frame,
+                (x,y),
+                (x+w,y+h),
+                (0,255,0),
+                2
+            )
+
+        data = {
+            "faces": len(faces),
+            "looking": looking,
+            "motion": motion,
+            "low_light": low_light,
+            "objects": objects,
+            "risk": risk,
+            "warning": warning
+        }
+
+        return frame,data
+
+    except Exception:
+
+        return image,{
+            "faces":0,
+            "looking":True,
+            "motion":False,
+            "low_light":False,
+            "objects":[],
+            "risk":0,
+            "warning":""
+        }
