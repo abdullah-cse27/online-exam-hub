@@ -1,5 +1,5 @@
 # ===================================================
-# FILE: anti_cheat/ai_detector.py (AI CHEATING ANALYZER)
+# FILE: anti_cheat/ai_detector.py (STABLE VERSION)
 # ===================================================
 
 def cheating_risk(data=None,
@@ -10,38 +10,34 @@ def cheating_risk(data=None,
                   suspicious_motion=0,
                   exam_duration=None,
                   expected_duration=None):
-
     """
-    Hybrid cheating risk analysis
-    Supports:
-    - AI proctoring data
-    - Exam behaviour analytics
+    Hybrid cheating risk analysis system.
+    Combines:
+    - Real-time AI proctoring (Vision)
+    - Behavioral analytics (Interaction)
+    - Temporal analytics (Time)
     """
 
     # ===================================================
-    # SAFE DATA EXTRACTION
+    # 1. SAFE DATA EXTRACTION (PROCTORING DATA)
     # ===================================================
-
     if isinstance(data, dict):
-
-        faces = data.get("faces", 0)
+        faces = data.get("faces", 1)
         looking = data.get("looking", True)
         motion = data.get("motion", False)
         objects = data.get("objects", [])
         low_light = data.get("low_light", False)
-
     else:
-        faces = 0
+        # Defaults if proctoring data is missing
+        faces = 1 
         looking = True
         motion = False
         objects = []
         low_light = False
 
-
     # ===================================================
-    # NORMALIZE VALUES
+    # 2. NORMALIZE INPUTS
     # ===================================================
-
     tab_switches = int(tab_switches or 0)
     fast_answers = int(fast_answers or 0)
     skips = int(skips or 0)
@@ -51,148 +47,84 @@ def cheating_risk(data=None,
     risk_score = 0
     warning = ""
 
-
     # ===================================================
-    # CAMERA ANALYSIS
+    # 3. VISION-BASED RISK (FACIAL ANALYSIS)
     # ===================================================
-
     if faces == 0:
-        risk_score += 40
+        risk_score += 45
         warning = "⚠ Face not visible"
-
     elif faces > 1:
-        risk_score += 60
+        risk_score += 75  # High penalty for multiple people
         warning = "⚠ Multiple faces detected"
 
-
-    if not looking:
+    if not looking and faces > 0:
         risk_score += 20
-        warning = "⚠ Look at the screen"
-
-
-    if motion:
-        risk_score += 15
-
+        warning = "⚠ Please look at the screen"
 
     if low_light:
-        risk_score += 10
-        warning = "⚠ Low lighting"
+        risk_score += 5 
+        warning = "⚠ Lighting is low"
 
-
-    if len(objects) > 0:
-
+    # ===================================================
+    # 4. OBJECT DETECTION RISK (YOLO)
+    # ===================================================
+    if objects:
         if "cell phone" in objects:
+            risk_score += 65  # Critical offense
+            warning = "⚠ Mobile Phone detected"
+        elif any(obj in ["book", "laptop", "tablet"] for obj in objects):
             risk_score += 50
-            warning = "⚠ Phone detected"
-
+            warning = f"⚠ Forbidden object: {objects[0]}"
         else:
-            risk_score += 40
-            warning = f"⚠ Suspicious object: {objects[0]}"
-
+            risk_score += 30
+            warning = "⚠ Suspicious object detected"
 
     # ===================================================
-    # TAB SWITCHING
+    # 5. BEHAVIORAL RISK (INTERACTION)
     # ===================================================
-
+    # Tab Switching: Each switch adds penalty
     if tab_switches > 0:
-        risk_score += tab_switches * 12
+        risk_score += (tab_switches * 15)
+        if tab_switches > 2:
+            risk_score += 25  # Bulk penalty for repeated switching
+            warning = "⚠ Frequent tab switching"
 
-    if tab_switches > 3:
-        risk_score += 15
-
-
-    # ===================================================
-    # FAST ANSWERS
-    # ===================================================
-
+    # Fast Answers: Guessing or copy-paste behavior
     if fast_answers > 2:
-        risk_score += fast_answers * 6
+        risk_score += (fast_answers * 5)
 
-    if fast_answers > 5:
-        risk_score += 10
-
-
-    # ===================================================
-    # SKIP PATTERN
-    # ===================================================
-
-    if skips > 2:
-        risk_score += skips * 4
-
-    if skips > 5:
-        risk_score += 10
-
-
-    # ===================================================
-    # CAMERA WARNINGS
-    # ===================================================
-
-    if camera_warnings > 0:
-        risk_score += camera_warnings * 10
-
-
-    # ===================================================
-    # SUSPICIOUS MOTION
-    # ===================================================
-
+    # Suspicious Motion
     if suspicious_motion > 0:
-        risk_score += suspicious_motion * 8
-
-
-    # ===================================================
-    # EXAM TIME ANALYSIS
-    # ===================================================
-
-    if exam_duration and expected_duration:
-
-        if exam_duration < expected_duration * 0.4:
-            risk_score += 15
-
-
-    # ===================================================
-    # BEHAVIOUR COMBINATIONS
-    # ===================================================
-
-    if tab_switches > 2 and fast_answers > 3:
-        risk_score += 15
-
-    if tab_switches > 1 and skips > 3:
         risk_score += 10
 
-    if fast_answers > 4 and skips > 4:
-        risk_score += 8
-
+    # ===================================================
+    # 6. TIME-BASED RISK (ANOMALY DETECTION)
+    # ===================================================
+    if exam_duration is not None and expected_duration is not None:
+        # If student finishes in less than 25% of the time
+        if exam_duration < (expected_duration * 0.25):
+            risk_score += 30
+            warning = "⚠ Exam completed unnaturally fast"
 
     # ===================================================
-    # LIMIT SCORE
+    # 7. FINAL RISK EVALUATION
     # ===================================================
-
+    # Caps risk at 100%
     risk_score = min(risk_score, 100)
 
-
-    # ===================================================
-    # RISK LEVEL
-    # ===================================================
-
-    if risk_score >= 70:
+    if risk_score >= 80:
+        level = "CRITICAL"
+    elif risk_score >= 50:
         level = "HIGH"
-
-    elif risk_score >= 40:
+    elif risk_score >= 25:
         level = "MEDIUM"
-
     else:
         level = "LOW"
 
-
-    # ===================================================
-    # RETURN RESULT
-    # ===================================================
-
-    result = {
+    return {
         "risk_score": risk_score,
         "risk_level": level,
-        "warning": warning,
-        "faces": faces
+        "warning": warning or "Monitoring Active",
+        "faces": faces,
+        "status": "Cheating Detected" if risk_score > 70 else "Normal"
     }
-
-    return result

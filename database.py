@@ -323,31 +323,34 @@ def count_questions():
 # RESULT FUNCTIONS
 # ============================
 
-def save_result(student_id, subject, score, total, percentage, grade):
+# ============================
+# RESULT FUNCTIONS (UPDATED FOR PROCTORING)
+# ============================
 
+def save_result(student_id, subject, score, total, percentage, grade, cheat_risk=0):
+    """
+    Saves the exam result including the AI Proctoring risk score.
+    Original structure maintained, cheat_risk added as an extra column.
+    """
     ensure_files_exist()
-
     timestamp = str(int(time.time()))
 
     with open(RESULTS_FILE, "a", encoding="utf-8") as f:
-
+        # Added cheat_risk at the end of the line
         f.write(
-            f"{student_id}|{subject}|{score}|{total}|{percentage}|{grade}|{timestamp}\n"
+            f"{student_id}|{subject}|{score}|{total}|{percentage}|{grade}|{timestamp}|{cheat_risk}\n"
         )
 
-
 def get_all_results():
-
     results = []
-
     for line in read_lines(RESULTS_FILE):
-
         parts = line.split("|")
-
+        # Checking for both old (6-7 parts) and new (8 parts) formats
         if len(parts) >= 6:
             results.append(parts)
-
     return results
+
+# Baki saare functions (User, Questions, Attempts) bilkul wahi hain jo aapne diye thay.
 
 
 def get_result(student_id):

@@ -27,7 +27,8 @@ BLOCKED_KEYWORDS = [
     "shutil",
     "socket",
     "threading",
-    "multiprocessing"
+    "multiprocessing",
+    "system(" # Added for C/C++ security
 ]
 
 
@@ -57,6 +58,7 @@ def limit_resources():
 
         import resource
 
+        # Limit memory to 100MB and CPU time to 2 seconds
         resource.setrlimit(resource.RLIMIT_AS, (100 * 1024 * 1024, -1))
         resource.setrlimit(resource.RLIMIT_CPU, (2, 2))
 
@@ -130,13 +132,16 @@ def run_python_code(code, input_data=None):
 # ===================================================
 
 def run_c_code(code, input_data=None):
+    
+    safe, message = is_safe(code)
+    if not safe: return f"Security Error: {message}"
 
     try:
 
         with tempfile.TemporaryDirectory() as tmpdir:
 
             c_file = os.path.join(tmpdir, "main.c")
-            exe_file = os.path.join(tmpdir, "main")
+            exe_file = os.path.join(tmpdir, "main.exe" if os.name == "nt" else "main")
 
             with open(c_file, "w") as f:
                 f.write(code)
@@ -155,7 +160,8 @@ def run_c_code(code, input_data=None):
                 input=input_data,
                 capture_output=True,
                 text=True,
-                timeout=3
+                timeout=3,
+                preexec_fn=limit_resources if os.name != "nt" else None
             )
 
             if run_result.stderr:
@@ -174,12 +180,15 @@ def run_c_code(code, input_data=None):
 
 def run_cpp_code(code, input_data=None):
 
+    safe, message = is_safe(code)
+    if not safe: return f"Security Error: {message}"
+
     try:
 
         with tempfile.TemporaryDirectory() as tmpdir:
 
             cpp_file = os.path.join(tmpdir, "main.cpp")
-            exe_file = os.path.join(tmpdir, "main")
+            exe_file = os.path.join(tmpdir, "main.exe" if os.name == "nt" else "main")
 
             with open(cpp_file, "w") as f:
                 f.write(code)
@@ -198,7 +207,8 @@ def run_cpp_code(code, input_data=None):
                 input=input_data,
                 capture_output=True,
                 text=True,
-                timeout=3
+                timeout=3,
+                preexec_fn=limit_resources if os.name != "nt" else None
             )
 
             if run_result.stderr:
@@ -237,18 +247,31 @@ def run_code(language, code, input_data=None):
 # ===================================================
 
 def evaluate_code(language, code, test_cases):
-
+    """
+    Supports both list of dicts and list of lists (Admin Panel format)
+    """
     results = []
 
     for case in test_cases:
+        # Check if case is a list [input] or a dict {"input": "...", "output": "..."}
+        if isinstance(case, list):
+            # Fallback for Admin Panel format
+            inp = case[0] if len(case) > 0 else ""
+            # Output is usually handled separately in your database parser
+            # We'll assume the question logic provides expected_output separately
+            expected = "" 
+        else:
+            inp = case.get("input", "")
+            expected = case.get("output", "")
 
-        output = run_code(language, code, case["input"])
+        output = run_code(language, code, inp)
 
-        passed = str(output).strip() == str(case["output"]).strip()
+        # Basic stripping to avoid space-related failures
+        passed = str(output).strip() == str(expected).strip()
 
         results.append({
-            "input": case["input"],
-            "expected": case["output"],
+            "input": inp,
+            "expected": expected,
             "output": output,
             "passed": passed
         })

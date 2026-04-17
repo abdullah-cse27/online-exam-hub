@@ -109,7 +109,8 @@ def login_user():
 
             with st.spinner("Creating account & sending password..."):
 
-                create_user(roll, role="student")
+                # FIXED: Added required email and password placeholders
+                create_user(roll, email="", password="", role="student")
 
                 update_user(roll, email=email)
 

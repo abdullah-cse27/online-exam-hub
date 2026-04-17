@@ -4,13 +4,9 @@
 
 import streamlit as st
 import time
-from auth import login_user
-from admin import admin_panel
-from student import student_panel
-
 
 # =========================================================
-# PAGE CONFIG
+# PAGE CONFIG (MUST BE FIRST)
 # =========================================================
 
 st.set_page_config(
@@ -18,6 +14,14 @@ st.set_page_config(
     page_icon="🧠",
     layout="wide"
 )
+
+# =========================================================
+# CUSTOM IMPORTS
+# =========================================================
+
+from auth import login_user
+from admin import admin_panel
+from student import student_panel
 
 
 # =========================================================
@@ -30,7 +34,10 @@ defaults = {
     "userid": None,
     "page": "Login",
     "theme": "Light Mode",
-    "last_activity": time.time()
+    "last_activity": time.time(),
+    "exam_active": False,      # Proctoring logic: lock navigation
+    "cheat_risk": 0,           # Proctoring risk score
+    "tab_switches": 0          # Track suspicious tab switches
 }
 
 for key, value in defaults.items():
@@ -46,7 +53,11 @@ if st.session_state.logged_in:
 
     now = time.time()
 
-    if now - st.session_state.last_activity > 1800:
+    # Agar exam active hai, toh logout timer ko reset karte rahenge taaki auto-logout na ho jaye
+    if st.session_state.exam_active:
+        st.session_state.last_activity = now
+    
+    elif now - st.session_state.last_activity > 1800:
 
         st.warning("Session expired. Please login again.")
 
@@ -57,7 +68,8 @@ if st.session_state.logged_in:
 
         st.rerun()
 
-    st.session_state.last_activity = now
+    if not st.session_state.exam_active:
+        st.session_state.last_activity = now
 
 
 # =========================================================
@@ -157,7 +169,7 @@ st.markdown(
 
 
 # =========================================================
-# SIDEBAR USER INFO
+# SIDEBAR USER INFO & EXAM LOCK LOGIC
 # =========================================================
 
 if st.session_state.logged_in:
@@ -166,37 +178,39 @@ if st.session_state.logged_in:
         f"Logged in as {st.session_state.role}\n\nID: {st.session_state.userid}"
     )
 
-    if st.sidebar.button("Logout"):
-
-        for k in list(st.session_state.keys()):
-            del st.session_state[k]
-
-        st.rerun()
+    # Exam ke waqt logout button disable/hide kar denge taaki log galti se exit na karein
+    if not st.session_state.exam_active:
+        if st.sidebar.button("Logout"):
+            for k in list(st.session_state.keys()):
+                del st.session_state[k]
+            st.rerun()
+    else:
+        st.sidebar.warning("⚠️ Exam in Progress: Navigation Locked")
 
 
 # =========================================================
-# NAVIGATION
+# NAVIGATION (INTEGRATED WITH EXAM LOCK)
 # =========================================================
-
 
 menu = ["Login", "Admin Panel", "Student Panel"]
 
 if st.session_state.logged_in:
-
     if st.session_state.role == "admin":
         default_page = "Admin Panel"
     else:
         default_page = "Student Panel"
-
 else:
     default_page = "Login"
 
-
-choice = st.sidebar.radio(
-    "Navigation",
-    menu,
-    index=menu.index(default_page)
-)
+# Navigation Lock: Agar exam chal raha hai, toh student menu change nahi kar sakta
+if st.session_state.exam_active:
+    choice = "Student Panel"
+else:
+    choice = st.sidebar.radio(
+        "Navigation",
+        menu,
+        index=menu.index(default_page)
+    )
 
 st.session_state.page = choice
 
@@ -206,29 +220,18 @@ st.session_state.page = choice
 # =========================================================
 
 if choice == "Login":
-
     login_user()
 
-
 elif choice == "Admin Panel":
-
     if st.session_state.logged_in and st.session_state.role == "admin":
-
         admin_panel()
-
     else:
-
         st.warning("Please login as Admin!")
 
-
 elif choice == "Student Panel":
-
     if st.session_state.logged_in and st.session_state.role == "student":
-
         student_panel()
-
     else:
-
         st.warning("Please login as Student!")
 
 
@@ -241,7 +244,7 @@ st.markdown(
 <hr>
 <center>
 
-Online Examination System v1.0  
+Online Examination System v1.1 | AI Proctoring Enabled 🔒 <br>
 Developed with ❤️ using Streamlit
 
 </center>
